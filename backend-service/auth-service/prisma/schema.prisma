@@ -1,16 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
-  output = "../generated/prisma_client"
+model Admin {
+  id             String   @id @default(uuid())
+  name           String
+  instituteName  String
+  email          String   @unique
+  password       String
+  isVerified     Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  // Relations
+  teachers       Teacher[]
+  students       Student[]
 }
 
-model User {
-  id        Int      @id @default(autoincrement())
+model Teacher {
+  id         String    @id @default(uuid())
+  name       String
+  email      String    @unique
+  password   String
+  isActive   Boolean   @default(true)
+  adminId    String
+  admin      Admin     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  courses    Course[]
+
+  createdAt  DateTime  @default(now())
+}
+
+model Student {
+  id         String    @id @default(uuid())
+  name       String
+  email      String    @unique
+  password   String
+  isActive   Boolean   @default(true)
+  adminId    String
+  admin      Admin     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  enrolledCourses CourseEnrollment[]
+
+  createdAt  DateTime  @default(now())
+}
+
+model Course {
+  id         String   @id @default(uuid())
+  name       String
+  subject    String
+  teacherId  String
+  teacher    Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  enrollments CourseEnrollment[]
+
+  createdAt  DateTime @default(now())
+}
+
+model CourseEnrollment {
+  id        String   @id @default(uuid())
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
-  email     String   @unique
-  name      String?
 }
