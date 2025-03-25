@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-     "postinstall": "pnpm install --recursive",
+
     "dev": "concurrently \"pnpm --filter api-gateway dev\" \"pnpm --filter auth-service dev\" \"pnpm --filter teacher-service dev\" \"pnpm --filter student-service dev\" \"pnpm --filter grading-service dev\" \"pnpm --filter notification-service dev\""
   },
   "keywords": [],

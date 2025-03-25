@@ -2,23 +2,25 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "../../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const { login, loading } = useAuth();
+  const navigate = useNavigate();
 
-  const handleLogin = async () => {
-    setLoading(true);
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      alert(`Logged in with Email: ${email}`);
+  const handleLogin = async (e: React.FormEvent) => {
+
+    e.preventDefault();
+    try{
+      
+    await login(email, password);
+    navigate("/");
     } catch (error) {
       console.error("Login failed", error);
-    } finally {
-      setLoading(false);
-    }
+    } 
   };
 
   return (
