@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 
 interface User {
   id: string;
@@ -23,6 +24,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // 🔹 Check if user is already logged in (on page refresh)
   useEffect(() => {
+
     const storedUser = localStorage.getItem("user");
     if (storedUser && token) {
       setUser(JSON.parse(storedUser));
@@ -33,6 +35,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
     }
+    setLoading(false);
   }, [token]);
 
   // 🔹 Login Function
@@ -52,6 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setToken(data.data.token);
       localStorage.setItem("token", data.data.token);
       localStorage.setItem("user", JSON.stringify(data.data.teacher));
+      
     } catch (error) {
       console.error("Login failed:", error);
     } finally {

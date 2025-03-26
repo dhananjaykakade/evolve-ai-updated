@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,8 @@ import {
   MessageCircle,
   CheckCircle2,
   AlertCircle,
+  Edit,
+  Trash,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -31,6 +32,8 @@ interface AssignmentCardProps {
   status: "active" | "draft" | "past" | "overdue";
   feedbackGenerated?: boolean;
   questions?: number;
+  onDelete: () => void; // ✅ Added Delete Prop
+  onEdit: () => void; // ✅ Added Edit Prop
 }
 
 export const AssignmentCard = ({
@@ -43,6 +46,8 @@ export const AssignmentCard = ({
   status,
   feedbackGenerated = false,
   questions = 0,
+  onDelete, // ✅ Handle Delete
+  onEdit, // ✅ Handle Edit
 }: AssignmentCardProps) => {
   const submissionRate = (submissionsCount / totalStudents) * 100;
 
@@ -65,12 +70,7 @@ export const AssignmentCard = ({
       <CardHeader className="flex flex-row items-start justify-between pb-2">
         <div>
           <div className="flex items-center gap-2">
-            <span
-              className={cn(
-                "inline-flex h-6 items-center rounded-full px-2.5 text-xs font-medium",
-                statusColors[status]
-              )}
-            >
+            <span className={cn("inline-flex h-6 items-center rounded-full px-2.5 text-xs font-medium", statusColors[status])}>
               {statusLabels[status]}
             </span>
             <span className="text-xs text-muted-foreground">{course}</span>
@@ -78,6 +78,7 @@ export const AssignmentCard = ({
           <h3 className="mt-1 text-xl font-medium">{title}</h3>
         </div>
 
+        {/* Dropdown Menu for Actions */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -85,11 +86,15 @@ export const AssignmentCard = ({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-40">
-            <DropdownMenuItem>Edit</DropdownMenuItem>
+            <DropdownMenuItem onClick={onEdit}>
+              <Edit className="mr-2 h-4 w-4" />
+              Edit
+            </DropdownMenuItem>
             <DropdownMenuItem>Duplicate</DropdownMenuItem>
             <DropdownMenuItem>Generate Questions</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">
+            <DropdownMenuItem className="text-destructive" onClick={onDelete}>
+              <Trash className="mr-2 h-4 w-4" />
               Delete
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -97,9 +102,7 @@ export const AssignmentCard = ({
       </CardHeader>
 
       <CardContent>
-        <p className="mb-4 line-clamp-2 text-sm text-muted-foreground">
-          {description}
-        </p>
+        <p className="mb-4 line-clamp-2 text-sm text-muted-foreground">{description}</p>
 
         <div className="mb-4 space-y-3">
           <div className="flex items-center justify-between text-sm">
@@ -151,26 +154,10 @@ export const AssignmentCard = ({
           <FileText className="mr-1 h-4 w-4" />
           View Details
         </Button>
-        {status === "active" && (
-          <Button size="sm" className="h-8">
-            Review Submissions
-          </Button>
-        )}
-        {status === "draft" && (
-          <Button size="sm" className="h-8">
-            Publish
-          </Button>
-        )}
-        {status === "past" && (
-          <Button size="sm" variant="outline" className="h-8">
-            View Analytics
-          </Button>
-        )}
-        {status === "overdue" && (
-          <Button size="sm" className="h-8">
-            Grade Now
-          </Button>
-        )}
+        {status === "active" && <Button size="sm" className="h-8">Review Submissions</Button>}
+        {status === "draft" && <Button size="sm" className="h-8">Publish</Button>}
+        {status === "past" && <Button size="sm" variant="outline" className="h-8">View Analytics</Button>}
+        {status === "overdue" && <Button size="sm" className="h-8">Grade Now</Button>}
       </CardFooter>
     </Card>
   );
