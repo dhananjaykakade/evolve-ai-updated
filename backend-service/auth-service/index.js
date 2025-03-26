@@ -9,13 +9,20 @@ import ResponseHandler from "./src/utils/CustomResponse.js";
 import { httpLogger } from "./src/utils/logger.js";
 dotenv.config();
 const app = express();
-app.use(cors());
+app.use(cors(
+  {
+    origin: "*", // Allow requests from any origin
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true, // Enable cookies for cross-origin requests
+    exposedHeaders: ["Content-Type", "Authorization"], // Expose required headers for CORS
+  }
+));
 app.use(express.json());
 
 
 app.use("/auth/admin", adminRoutes);
 app.use("/auth/teacher", teacherRoutes);
-app.use("/auth/student", studentRoutes);
+app.use("/auth/students", studentRoutes);
 
 app.use(httpLogger);
 // Handle 404 Not Found

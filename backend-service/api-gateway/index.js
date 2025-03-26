@@ -6,7 +6,14 @@ import dotenv from "dotenv";
 dotenv.config(); // Load environment variables
 
 const app = express();
-app.use(cors());
+app.use(cors(
+  {
+    origin: "*", // Allow requests from any origin
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true, // Enable cookies for cross-origin requests
+    exposedHeaders: ["Content-Type", "Authorization"], // Expose required headers for CORS
+  }
+));
 app.use(express.json());
 app.use(morgan("dev")); // Logging HTTP requests
 
@@ -42,5 +49,5 @@ app.use("/student", forwardRequest(services.student));
 app.use("/grading", forwardRequest(services.grading));
 app.use("/notification", forwardRequest(services.notification));
 
-const PORT = process.env.PORT || 8000;
+const PORT = process.env.PORT || 9000;
 app.listen(PORT, () => console.log(`🚀 API Gateway running on port ${PORT}`));

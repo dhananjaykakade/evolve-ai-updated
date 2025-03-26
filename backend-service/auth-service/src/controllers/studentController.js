@@ -26,3 +26,10 @@ export const studentLogin = apiHandler(async (req, res) => {
 
   return ResponseHandler.success(res, 200, "Login successful", { student, token });
 });
+
+// get all students
+
+export const getStudents = apiHandler(async (req, res) => {
+  const students = await prisma.student.findMany();
+  return ResponseHandler.success(res, 200, "Students fetched successfully", { students });
+});

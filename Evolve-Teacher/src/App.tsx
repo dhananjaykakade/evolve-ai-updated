@@ -15,10 +15,12 @@ import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./components/login/loginform";
+import { useAuth } from "./context/AuthContext";
 
 const queryClient = new QueryClient();
 
 const App = () => (
+  
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
