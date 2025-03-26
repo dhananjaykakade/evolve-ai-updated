@@ -2,20 +2,22 @@ import express from "express";
 import cors from "cors";
 import morgan from "morgan";
 import dotenv from "dotenv";
+import { createProxyMiddleware } from "http-proxy-middleware"; // Import proxy middleware
+import { execSync } from "child_process";
 
-dotenv.config(); // Load environment variables
+dotenv.config();
 
 const app = express();
-app.use(cors(
-  {
-    origin: "*", // Allow requests from any origin
+app.use(
+  cors({
+    origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    credentials: true, // Enable cookies for cross-origin requests
-    exposedHeaders: ["Content-Type", "Authorization"], // Expose required headers for CORS
-  }
-));
+    credentials: true,
+    exposedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 app.use(express.json());
-app.use(morgan("dev")); // Logging HTTP requests
+app.use(morgan("dev"));
 
 const services = {
   auth: process.env.AUTH_SERVICE_URL || "http://localhost:8001",
@@ -25,29 +27,85 @@ const services = {
   notification: process.env.NOTIFICATION_SERVICE_URL || "http://localhost:8003",
 };
 
-app.get("/", (req, res) => {
-  res.send("✅ API Gateway is running...");
-});
-
-// Function to forward requests dynamically
-const forwardRequest = (serviceUrl) => async (req, res) => {
+// Function to check if Docker is running
+const isDockerRunning = () => {
   try {
-    const url = serviceUrl + req.url;
-    console.log(`🔄 Forwarding request: ${req.method} ${url}`);
-
-    res.redirect(url);
+    const output = execSync("docker ps").toString();
+    return output.includes("CONTAINER ID");
   } catch (error) {
-    console.error(`❌ Error forwarding request to ${serviceUrl}:`, error);
-    res.status(500).json({ message: "Service unavailable" });
+    return false;
   }
 };
 
-// Define routes for each microservice
-app.use("/auth", forwardRequest(services.auth));
-app.use("/teacher", forwardRequest(services.teacher));
-app.use("/student", forwardRequest(services.student));
-app.use("/grading", forwardRequest(services.grading));
-app.use("/notification", forwardRequest(services.notification));
+// Start Docker if not running
+const startDocker = () => {
+  console.log("🔍 Checking Docker status...");
+  if (!isDockerRunning()) {
+    console.log("🚀 Starting Docker services...");
+    try {
+      execSync("docker-compose up -d", { stdio: "inherit" });
+      console.log("✅ Docker containers are running!");
+    } catch (error) {
+      console.error("❌ Failed to start Docker:", error);
+      process.exit(1);
+    }
+  } else {
+    console.log("✅ Docker is already running.");
+  }
+};
+
+// Start Docker before launching the server
+startDocker();
+
+// Define proxy for each microservice
+app.use(
+  "/auth",
+  createProxyMiddleware({
+    target: services.auth,
+    changeOrigin: true,
+    pathRewrite: { "^/auth": "" }, // Remove "/auth" prefix when forwarding
+  })
+);
+
+app.use(
+  "/teacher",
+  createProxyMiddleware({
+    target: services.teacher,
+    changeOrigin: true,
+    pathRewrite: { "^/teacher": "" },
+  })
+);
+
+app.use(
+  "/student",
+  createProxyMiddleware({
+    target: services.student,
+    changeOrigin: true,
+    pathRewrite: { "^/student": "" },
+  })
+);
+
+app.use(
+  "/grading",
+  createProxyMiddleware({
+    target: services.grading,
+    changeOrigin: true,
+    pathRewrite: { "^/grading": "" },
+  })
+);
+
+app.use(
+  "/notification",
+  createProxyMiddleware({
+    target: services.notification,
+    changeOrigin: true,
+    pathRewrite: { "^/notification": "" },
+  })
+);
+
+app.get("/", (req, res) => {
+  res.send("✅ API Gateway is running...");
+});
 
 const PORT = process.env.PORT || 9000;
 app.listen(PORT, () => console.log(`🚀 API Gateway running on port ${PORT}`));

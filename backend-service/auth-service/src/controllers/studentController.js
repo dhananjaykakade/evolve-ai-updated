@@ -17,10 +17,14 @@ const generateToken = (user) => {
 export const studentLogin = apiHandler(async (req, res) => {
   const { email, password } = req.body;
   const student = await prisma.student.findUnique({ where: { email } });
-  if (!student) return ResponseHandler.notFound(res, "Student not found.");
+  if (!student) {
+    return ResponseHandler.notFound(res, "Student not found.");
+  }
 
   const isValidPassword = await bcrypt.compare(password, student.password);
-  if (!isValidPassword) return ResponseHandler.unauthorized(res, "Invalid credentials.");
+  if (!isValidPassword) {
+    return ResponseHandler.unauthorized(res, "Invalid credentials.");
+  }
 
   const token = generateToken(student);
 
@@ -33,3 +37,14 @@ export const getStudents = apiHandler(async (req, res) => {
   const students = await prisma.student.findMany();
   return ResponseHandler.success(res, 200, "Students fetched successfully", { students });
 });
+
+
+
+export const getSingleStudent = apiHandler(async (req, res) => {
+  const { id } = req.params;
+  const student = await prisma.student.findUnique({ where: { id } });
+  if (!student) {
+    return ResponseHandler.notFound(res, "Student not found.");
+  }
+  return ResponseHandler.success(res, 200, "Student fetched successfully", { student });
+})
