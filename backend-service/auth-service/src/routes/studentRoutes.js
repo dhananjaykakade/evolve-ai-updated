@@ -5,7 +5,7 @@ const router = express.Router();
 
 router.post("/login", studentLogin);
 
-router.get("/", getStudents);
+router.get("/get", getStudents);
 
 router.get("/:id", getSingleStudent);
 

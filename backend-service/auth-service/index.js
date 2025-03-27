@@ -19,10 +19,15 @@ app.use(cors(
 ));
 app.use(express.json());
 
+// Admin routes
+app.get('/',(req,res) => {
+  res.send("default auth route")
+})
+
 
 app.use("/auth/admin", adminRoutes);
 app.use("/auth/teacher", teacherRoutes);
-app.use("/auth/students", studentRoutes);
+app.use("/students", studentRoutes);
 
 app.use(httpLogger);
 // Handle 404 Not Found

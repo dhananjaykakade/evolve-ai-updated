@@ -4,10 +4,11 @@ import dotenv from "dotenv";
 import {logger} from "./logger.js";
 
 dotenv.config();
+const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/evolve_ai_students";
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI, {
+    await mongoose.connect(MONGO_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
