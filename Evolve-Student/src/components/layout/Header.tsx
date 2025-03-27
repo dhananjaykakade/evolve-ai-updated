@@ -1,21 +1,29 @@
-
-import React, { useState } from 'react';
-import { Bell, Search, User, Settings, HelpCircle, LogOut, Moon, Sun } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { useTheme } from '@/contexts/ThemeContext';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
+import React, { useState } from "react";
+import {
+  Bell,
+  Search,
+  User,
+  Settings,
+  HelpCircle,
+  LogOut,
+  Moon,
+  Sun,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useTheme } from "@/contexts/ThemeContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import NotificationDropdown from '@/components/ui/NotificationDropdown';
-import { Button } from '@/components/ui/button';
+import NotificationDropdown from "@/components/ui/NotificationDropdown";
+import { Button } from "@/components/ui/button";
 
 interface HeaderProps {
   title: string;
@@ -26,7 +34,7 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { theme, toggleTheme } = useTheme();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
 
   const handleLogout = () => {
     // In a real app, you would call an API to logout and clear user session
@@ -36,20 +44,20 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
         title: "Logged out successfully",
         description: "You have been logged out of your account",
       });
-      
+
       // Navigate to login page
       // In a real app, you would have a proper login page
       // For now, we'll just navigate to the home page
-      navigate('/');
+      navigate("/");
     }, 500);
   };
 
   const handleProfileClick = () => {
-    navigate('/profile');
+    navigate("/profile");
   };
 
   const handleSettingsClick = () => {
-    navigate('/profile'); // For now, navigate to profile page
+    navigate("/profile"); // For now, navigate to profile page
   };
 
   const handleSupportClick = () => {
@@ -68,7 +76,7 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
         description: `Searching for: ${searchQuery}`,
       });
       // In a real app, you would implement actual search functionality
-      console.log('Searching for:', searchQuery);
+      console.log("Searching for:", searchQuery);
     }
   };
 
@@ -76,31 +84,33 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
     <header className="h-16 border-b bg-background/95 backdrop-blur-sm sticky top-0 z-10 w-full">
       <div className="flex items-center justify-between h-full px-4 md:px-6">
         <h1 className="text-xl font-medium">{title}</h1>
-        
+
         {!isMobile && (
           <div className="relative w-full max-w-sm mx-auto hidden md:flex">
             <form onSubmit={handleSearch} className="w-full">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              {/* <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
                 placeholder="Search assignments, feedback..."
                 className="w-full rounded-full bg-background pl-8 md:w-[300px] lg:w-[400px]"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-              />
+              /> */}
             </form>
           </div>
         )}
-        
+
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
             size="icon"
             className="rounded-full"
             onClick={toggleTheme}
-            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={
+              theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
+            }
           >
-            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
           </Button>
 
           <DropdownMenu>
@@ -112,7 +122,7 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
             </DropdownMenuTrigger>
             <NotificationDropdown />
           </DropdownMenu>
-          
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="rounded-full h-8 w-8 flex items-center justify-center bg-muted">
@@ -122,20 +132,32 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>Alex Johnson</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleProfileClick} className="cursor-pointer">
+              <DropdownMenuItem
+                onClick={handleProfileClick}
+                className="cursor-pointer"
+              >
                 <User className="mr-2 h-4 w-4" />
                 Profile
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleSettingsClick} className="cursor-pointer">
+              <DropdownMenuItem
+                onClick={handleSettingsClick}
+                className="cursor-pointer"
+              >
                 <Settings className="mr-2 h-4 w-4" />
                 Settings
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleSupportClick} className="cursor-pointer">
+              <DropdownMenuItem
+                onClick={handleSupportClick}
+                className="cursor-pointer"
+              >
                 <HelpCircle className="mr-2 h-4 w-4" />
                 Support
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="cursor-pointer"
+              >
                 <LogOut className="mr-2 h-4 w-4" />
                 Log out
               </DropdownMenuItem>
