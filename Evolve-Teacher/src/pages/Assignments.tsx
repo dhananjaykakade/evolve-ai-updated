@@ -9,11 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Search, SlidersHorizontal, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth} from "../context/AuthContext.js";
 
 const Assignments = () => {
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("ALL");
+  const {user } =useAuth()
 
   useEffect(() => {
     fetchAssignments();
@@ -22,11 +24,11 @@ const Assignments = () => {
   const fetchAssignments = async () => {
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:9000/teacher/assignments");
+      const response = await fetch(`http://localhost:9000/teacher/assignments/${user?.id}/submissions`);
       if (!response.ok) throw new Error("Failed to fetch assignments");
 
       const data = await response.json();
-      setAssignments(data.data || []);
+      setAssignments(data.data.assignments || []);
     } catch (error) {
       toast.error("Error fetching assignments");
     } finally {
@@ -111,6 +113,7 @@ const Assignments = () => {
                     totalStudents={30}
                     status={assignment.status.toLowerCase()}
                     onDelete={() => handleDelete(assignment._id)} // ✅ Delete function
+                    onEdit={() =>   handleDelete(assignment._id)}
                   />
                 ))}
               </div>

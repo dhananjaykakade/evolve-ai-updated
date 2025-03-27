@@ -2,10 +2,14 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import errorMiddleware from "./src/middleware/errorMiddleware.js"
+import submissionRoute from "./src/routes/submissionRoute.js"
+import connectDB from "./src/config/connection.js"; // Ensure you import the database connection
+
 
 import ResponseHandler from "./src/utils/CustomResponse.js";
 import { httpLogger } from "./src/config/logger.js";
 dotenv.config();
+connectDB()
 const app = express();
 app.use(cors(
   {
@@ -20,6 +24,10 @@ app.use(express.json());
 
 
 app.use(httpLogger);
+
+// Routes
+
+app.use("/submissions", submissionRoute);
 // Handle 404 Not Found
 app.use((req, res, next) => {
   ResponseHandler.notFound(res);

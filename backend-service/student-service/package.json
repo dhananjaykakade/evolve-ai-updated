@@ -1,4 +1,3 @@
-
 {
   "$schema": "https://json.schemastore.org/package.json",
   "name": "student-service",
@@ -14,6 +13,7 @@
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^6.5.0",
+    "axios": "^1.8.4",
     "bcryptjs": "^3.0.2",
     "bullmq": "^5.44.4",
     "chalk": "^5.4.1",
@@ -33,4 +33,3 @@
     "winston-daily-rotate-file": "^5.0.0"
   }
 }
-

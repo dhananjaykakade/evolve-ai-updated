@@ -1,6 +1,7 @@
 import Assignment from "../models/assignmentModel.js";
 import apiHandler from "../utils/ApiHandler.js";
 import ResponseHandler from "../utils/CustomResponse.js";
+import axios from "axios"
 
 /**
  * 🟢 Create a new assignment
@@ -69,4 +70,47 @@ export const deleteAssignment = apiHandler(async (req, res) => {
   if (!assignment) return ResponseHandler.notFound(res, "Assignment not found.");
 
   return ResponseHandler.success(res, 200, "Assignment deleted successfully.");
+});
+
+export const  getSingleAssignment = apiHandler(async (req, res) => {
+  const { id } = req.params;
+  const assignment = await Assignment.findById(id);
+  if (!assignment) return ResponseHandler.notFound(res, "Assignment not found.");
+  return ResponseHandler.success(res, 200, "Assignment fetched successfully.", assignment);
+})
+
+
+export const getAssignmentsWithSubmissions = apiHandler(async (req, res) => {
+  const { teacherId } = req.query;
+
+  // ✅ Step 1: Fetch Assignments from Teacher Service
+  const assignments = await Assignment.find(teacherId ? { teacherId } : {});
+
+  // ✅ Step 2: Fetch Submissions from Student Service
+  const assignmentIds = assignments.map((assignment) => assignment._id);
+  const submissionsResponse = await axios.get(
+    `http://localhost:9000/student/submissions`,
+    { params: { assignmentIds } }
+  );
+
+  const submissions = submissionsResponse.data.data.submissions || [];
+
+  // ✅ Step 3: Merge Submissions with Assignments
+  const assignmentsWithSubmissions = assignments.map((assignment) => {
+    const assignmentSubmissions = submissions.filter(
+      (sub) => sub.assignmentId === assignment._id.toString()
+    );
+
+    return {
+      ...assignment.toObject(),
+      submissions: assignmentSubmissions,
+    };
+  });
+
+  return ResponseHandler.success(
+    res,
+    200,
+    "Assignments with submissions fetched successfully",
+    { assignments: assignmentsWithSubmissions }
+  );
 });
