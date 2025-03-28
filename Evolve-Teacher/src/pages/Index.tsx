@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/layout/Dashboard";
 import { DashboardStats } from "@/components/dashboard/Stats";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
@@ -16,8 +16,41 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BrainCircuit, BookOpen, Users, ArrowRight } from "lucide-react";
 import { AssignmentCard } from "@/components/assignments/AssignmentCard";
-
+import { useAuth} from "../context/AuthContext.js";
+import { toast } from "sonner";
 const Index = () => {
+  const [loading, setLoading] = useState(true);
+    const [assignments, setAssignments] = useState([]);
+      const [filter, setFilter] = useState("PUBLISHED");
+
+    const {user } =useAuth()
+
+  useEffect(() => {
+    fetchAssignments();
+  }, []);
+
+  const fetchAssignments = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`http://localhost:9000/teacher/assignments/${user?.id}/submissions`);
+      if (!response.ok) throw new Error("Failed to fetch assignments");
+
+      const data = await response.json();
+      setAssignments(data.data.assignments || []);
+      console.log(data.data.assignments)
+    } catch (error) {
+      toast.error("Error fetching assignments");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredAssignments = assignments.filter((assignment) => {
+    if (filter === "PUBLISHED") return true;
+    return assignment.status === filter;
+  });
+  console.log(assignments)
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -173,84 +206,37 @@ const Index = () => {
             <h2 className="text-2xl font-medium">Active Assignments</h2>
             <Button variant="outline">View All</Button>
           </div>
-          <Tabs defaultValue="active">
-            <TabsList className="mb-4">
-              <TabsTrigger value="active">Active</TabsTrigger>
-              <TabsTrigger value="draft">Draft</TabsTrigger>
-              <TabsTrigger value="past">Past</TabsTrigger>
-            </TabsList>
-            <TabsContent value="active" className="mt-0">
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                <AssignmentCard
-                  title="Database Design Project"
-                  description="Design a normalized database schema for an e-commerce platform and implement it using MySQL."
-                  dueDate="Sep 14, 2023"
-                  course="CS 401"
-                  submissionsCount={18}
-                  totalStudents={24}
-                  status="active"
-                  feedbackGenerated={true}
-                  questions={3}
-                />
-                <AssignmentCard
-                  title="Programming Quiz 2"
-                  description="Multiple choice quiz covering loops, functions, and object-oriented programming concepts."
-                  dueDate="Sep 15, 2023"
-                  course="CS 101"
-                  submissionsCount={12}
-                  totalStudents={32}
-                  status="active"
-                />
-                <AssignmentCard
-                  title="Algorithm Analysis"
-                  description="Analyze the time and space complexity of different sorting algorithms and provide implementation examples."
-                  dueDate="Sep 16, 2023"
-                  course="CS 301"
-                  submissionsCount={8}
-                  totalStudents={28}
-                  status="active"
-                  questions={2}
-                />
-              </div>
-            </TabsContent>
-            <TabsContent value="draft" className="mt-0">
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                <AssignmentCard
-                  title="Cloud Computing Project"
-                  description="Deploy a multi-tier application on AWS using EC2, S3, and RDS. Document the architecture and implementation details."
-                  dueDate="Not set"
-                  course="CS 601"
-                  submissionsCount={0}
-                  totalStudents={18}
-                  status="draft"
-                />
-              </div>
-            </TabsContent>
-            <TabsContent value="past" className="mt-0">
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                <AssignmentCard
-                  title="Intro to Programming Assignment"
-                  description="Create simple programs using variables, conditionals, and loops to solve basic problems."
-                  dueDate="Sep 5, 2023"
-                  course="CS 101"
-                  submissionsCount={30}
-                  totalStudents={32}
-                  status="past"
-                  feedbackGenerated={true}
-                />
-                <AssignmentCard
-                  title="Data Structures Quiz"
-                  description="Quiz covering arrays, linked lists, stacks, queues, and binary trees."
-                  dueDate="Sep 8, 2023"
-                  course="CS 201"
-                  submissionsCount={22}
-                  totalStudents={28}
-                  status="past"
-                  feedbackGenerated={true}
-                />
-              </div>
-            </TabsContent>
-          </Tabs>
+           <Tabs defaultValue="PUBLISHED">
+                    <TabsList>
+                     
+                      <TabsTrigger value="PUBLISHED" onClick={() => setFilter("PUBLISHED")}>Published</TabsTrigger>
+                      <TabsTrigger value="DRAFT" onClick={() => setFilter("DRAFT")}>Draft</TabsTrigger>
+                      <TabsTrigger value="CLOSED" onClick={() => setFilter("CLOSED")}>Closed</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value={filter} className="mt-6">
+                      {loading ? (
+                        <p>Loading assignments...</p>
+                      ) : filteredAssignments.length > 0 ? (
+                        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                          {filteredAssignments.map((assignment) => (
+                            <AssignmentCard
+                              key={assignment._id}
+                              title={assignment.title}
+                              description={assignment.description}
+                              dueDate={new Date(assignment.dueDate).toLocaleDateString()}
+                              course={assignment.course}
+                              submissionsCount={assignment.submissions?.length || 0}
+                              totalStudents={30}
+                              status={assignment.status.toLowerCase()}
+
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <p>No assignments found.</p>
+                      )}
+                    </TabsContent>
+                  </Tabs>
         </div>
       </div>
     </DashboardLayout>

@@ -9,7 +9,7 @@ const assignments = [
   {
     title: "Machine Learning Basics",
     description: "Introduction to ML concepts.",
-    dueDate: new Date("2024-04-30"),
+    dueDate: new Date("2025-06-30"),
     teacherId: "660b123456789abcd0123456",
     course: "cs301",
     useAI: true,
@@ -20,19 +20,19 @@ const assignments = [
   {
     title: "Data Structures and Algorithms",
     description: "Understanding data structures and algorithms.",
-    dueDate: new Date("2024-05-05"),
+    dueDate: new Date("2025-06-30"),
     teacherId: "660b123456789abcd0123456",
     course: "cs201",
     useAI: false,
     submissionType: "CODE",
-    status: "DRAFT",
+    status: "PUBLISHED",
     materials: "https://res.cloudinary.com/demo/image/upload/v1710000000/assignments/dsa_notes.pdf"
   },
   {
     title: "Web Development Fundamentals",
     description: "HTML, CSS, and JavaScript basics.",
     dueDate: new Date("2024-04-25"),
-    teacherId: "660b123456789abcd0123457",
+    teacherId: "660b123456789abcd0123456",
     course: "cs501",
     useAI: true,
     submissionType: "TEXT",
@@ -53,8 +53,8 @@ const assignments = [
   {
     title: "Database Management Systems",
     description: "SQL and NoSQL database fundamentals.",
-    dueDate: new Date("2024-05-10"),
-    teacherId: "660b123456789abcd0123459",
+    dueDate: new Date("2025-05-10"),
+    teacherId: "660b123456789abcd0123456",
     course: "cs401",
     useAI: true,
     submissionType: "FILE",
@@ -65,7 +65,7 @@ const assignments = [
     title: "Cybersecurity Basics",
     description: "Understanding the fundamentals of cybersecurity.",
     dueDate: new Date("2024-05-15"),
-    teacherId: "660b123456789abcd0123460",
+    teacherId: "660b123456789abcd0123456",
     course: "cs601",
     useAI: false,
     submissionType: "TEXT",
@@ -76,7 +76,7 @@ const assignments = [
     title: "Operating Systems Concepts",
     description: "Process scheduling, memory management, and more.",
     dueDate: new Date("2024-05-20"),
-    teacherId: "660b123456789abcd0123461",
+    teacherId: "660b123456789abcd0123456",
     course: "cs701",
     useAI: true,
     submissionType: "FILE",
@@ -87,7 +87,7 @@ const assignments = [
     title: "Artificial Intelligence Fundamentals",
     description: "Basics of AI, machine learning, and deep learning.",
     dueDate: new Date("2024-05-25"),
-    teacherId: "660b123456789abcd0123462",
+    teacherId: "660b123456789abcd0123456",
     course: "cs801",
     useAI: true,
     submissionType: "TEXT",
@@ -98,29 +98,29 @@ const assignments = [
     title: "Blockchain and Cryptocurrency",
     description: "Understanding blockchain technology.",
     dueDate: new Date("2024-06-01"),
-    teacherId: "660b123456789abcd0123463",
+    teacherId: "660b123456789abcd0123456",
     course: "cs901",
     useAI: false,
     submissionType: "FILE",
-    status: "PUBLISHED",
+    status: "CLOSED",
     materials: "https://res.cloudinary.com/demo/image/upload/v1710000000/assignments/blockchain.pdf"
   },
   {
     title: "Cloud Computing Essentials",
     description: "Introduction to cloud computing and AWS services.",
     dueDate: new Date("2024-06-05"),
-    teacherId: "660b123456789abcd0123464",
+    teacherId: "660b123456789abcd0123456",
     course: "cs1001",
     useAI: true,
     submissionType: "CODE",
-    status: "PUBLISHED",
+    status: "CLOSED",
     materials: "https://res.cloudinary.com/demo/image/upload/v1710000000/assignments/cloud_computing.pdf"
   }
 ];
 
 const seedDB = async () => {
   try {
-    await mongoose.connect('mongodb://127.0.0.1:27017/evolveai_teacher', {
+    await mongoose.connect(process.env.MONGO_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true
     });

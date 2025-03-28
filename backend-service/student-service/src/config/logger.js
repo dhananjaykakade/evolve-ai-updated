@@ -44,12 +44,9 @@ const consoleFormat = winston.format.combine(
         : "";
 
 
-    // Ensure log message is properly formatted
-    if (message.includes("development") || message.includes("production")) {
+    
       return `${coloredTimestamp} ${coloredLevel}: ${message} ${processInfo} ${memoryUsage}${stackTrace} `;
-    } else {
-      return `${coloredTimestamp} ${coloredLevel}: ${message}${stackTrace} ${formattedMeta}`;
-    }
+    
   })
 );
 

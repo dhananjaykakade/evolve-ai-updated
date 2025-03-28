@@ -5,6 +5,8 @@ import dotenv from "dotenv";
 import { createProxyMiddleware } from "http-proxy-middleware"; // Import proxy middleware
 import { execSync } from "child_process";
 
+const NODE_ENV = process.env.NODE_ENV ||"development";
+
 dotenv.config();
 
 const app = express();
@@ -58,51 +60,63 @@ const startDocker = () => {
 startDocker();
 
 // Define proxy for each microservice
-app.use(
-  "/auth",
-  createProxyMiddleware({
-    target: services.auth,
-    changeOrigin: true,
-    pathRewrite: { "^/auth": "" }, // Remove "/auth" prefix when forwarding
-  })
-);
+if (NODE_ENV === "development") {
+  console.log("🛠 Running in Development Mode: Setting up Proxy...");
 
-app.use(
-  "/teacher",
-  createProxyMiddleware({
-    target: services.teacher,
-    changeOrigin: true,
-    pathRewrite: { "^/teacher": "" },
-  })
-);
+  app.use(
+    "/auth",
+    createProxyMiddleware({
+      target: services.auth,
+      changeOrigin: true,
+      pathRewrite: { "^/auth/": "/" },
+      onProxyReq: (proxyReq, req, res) => {
+        if (req.body) {
+          let bodyData = JSON.stringify(req.body);
+          proxyReq.setHeader("Content-Length", Buffer.byteLength(bodyData));
+          proxyReq.write(bodyData);
+        }
+      }
+    })
+  );
 
-app.use(
-  "/student",
-  createProxyMiddleware({
-    target: services.student,
-    changeOrigin: true,
-    pathRewrite: { "^/student": "" },
-  })
-);
+  app.use(
+    "/teacher",
+    createProxyMiddleware({
+      target: services.teacher,
+      changeOrigin: true,
+      pathRewrite: { "^/teacher": "" },
+    })
+  );
 
-app.use(
-  "/grading",
-  createProxyMiddleware({
-    target: services.grading,
-    changeOrigin: true,
-    pathRewrite: { "^/grading": "" },
-  })
-);
+  app.use(
+    "/student",
+    createProxyMiddleware({
+      target: services.student,
+      changeOrigin: true,
+      pathRewrite: { "^/student": "" },
+    })
+  );
 
-app.use(
-  "/notification",
-  createProxyMiddleware({
-    target: services.notification,
-    changeOrigin: true,
-    pathRewrite: { "^/notification": "" },
-  })
-);
+  app.use(
+    "/grading",
+    createProxyMiddleware({
+      target: services.grading,
+      changeOrigin: true,
+      pathRewrite: { "^/grading": "" },
+    })
+  );
 
+  app.use(
+    "/notification",
+    createProxyMiddleware({
+      target: services.notification,
+      changeOrigin: true,
+      pathRewrite: { "^/notification": "" },
+    })
+  );
+} else {
+  console.log("🚀 Running in Staging/Production Mode: Nginx will handle routing.");
+}
 app.get("/", (req, res) => {
   res.send("✅ API Gateway is running...");
 });

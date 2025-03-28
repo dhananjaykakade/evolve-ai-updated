@@ -18,6 +18,7 @@ app.use(cors(
   }
 ));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Admin routes
 app.get('/',(req,res) => {
@@ -26,7 +27,7 @@ app.get('/',(req,res) => {
 
 
 app.use("/auth/admin", adminRoutes);
-app.use("/auth/teacher", teacherRoutes);
+app.use("/teacher", teacherRoutes);
 app.use("/students", studentRoutes);
 
 app.use(httpLogger);

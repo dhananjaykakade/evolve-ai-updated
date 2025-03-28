@@ -14,7 +14,7 @@ import { useAuth} from "../context/AuthContext.js";
 const Assignments = () => {
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("ALL");
+  const [filter, setFilter] = useState("PUBLISHED");
   const {user } =useAuth()
 
   useEffect(() => {
@@ -90,9 +90,9 @@ const Assignments = () => {
         </div>
 
         {/* Tabs for Assignment Categories */}
-        <Tabs defaultValue="ALL">
+        <Tabs defaultValue="PUBLISHED">
           <TabsList>
-            <TabsTrigger value="ALL" onClick={() => setFilter("ALL")}>All</TabsTrigger>
+            
             <TabsTrigger value="PUBLISHED" onClick={() => setFilter("PUBLISHED")}>Published</TabsTrigger>
             <TabsTrigger value="DRAFT" onClick={() => setFilter("DRAFT")}>Draft</TabsTrigger>
             <TabsTrigger value="CLOSED" onClick={() => setFilter("CLOSED")}>Closed</TabsTrigger>
