@@ -3,5 +3,6 @@ packages:
   - "backend-service/auth-service"
   - "backend-service/teacher-service"
   - "backend-service/student-service"
-  - "backend-service/grading-service"
   - "backend-service/notification-service"
+  - "Evolve-Student"
+  - "Evolve-Teacher"

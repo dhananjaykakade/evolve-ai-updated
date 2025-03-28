@@ -37,4 +37,4 @@ app.use((req, res, next) => {
 app.use(errorMiddleware);
 
 const PORT = process.env.PORT || 8090;
-app.listen(PORT, () => console.log(`🚀 Auth Service running on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 student Service running on port ${PORT}`));

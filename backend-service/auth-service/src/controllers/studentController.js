@@ -16,6 +16,9 @@ const generateToken = (user) => {
  */
 export const studentLogin = apiHandler(async (req, res) => {
   const { email, password } = req.body;
+  if (!email){
+    return ResponseHandler.error(res,400, "please enter email.");
+  }
   const student = await prisma.student.findUnique({ where: { email } });
   if (!student) {
     return ResponseHandler.notFound(res, "Student not found.");

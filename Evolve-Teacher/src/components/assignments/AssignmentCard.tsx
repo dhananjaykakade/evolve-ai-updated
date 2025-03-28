@@ -29,11 +29,11 @@ interface AssignmentCardProps {
   course: string;
   submissionsCount: number;
   totalStudents: number;
-  status: "active" | "draft" | "past" | "overdue";
+  status: "published" | "draft" | "closed" ;
   feedbackGenerated?: boolean;
   questions?: number;
-  onDelete: () => void; // ✅ Added Delete Prop
-  onEdit: () => void; // ✅ Added Edit Prop
+  onDelete?: () => void ;// ✅ Added Delete Prop
+  onEdit?: () => void; // ✅ Added Edit Prop
 }
 
 export const AssignmentCard = ({
@@ -49,21 +49,21 @@ export const AssignmentCard = ({
   onDelete, // ✅ Handle Delete
   onEdit, // ✅ Handle Edit
 }: AssignmentCardProps) => {
-  const submissionRate = (submissionsCount / totalStudents) * 100;
+  const submissionRate = totalStudents > 0 ? (submissionsCount / totalStudents) * 100 : 0;
+
 
   const statusColors = {
-    active: "bg-success/15 text-success",
+    published: "bg-success/15 text-success",
     draft: "bg-info/15 text-info",
-    past: "bg-muted/30 text-muted-foreground",
-    overdue: "bg-overdue/15 text-overdue",
+    closed: "bg-muted/30 text-muted-foreground",
   };
 
   const statusLabels = {
-    active: "Active",
-    draft: "Draft",
-    past: "Past",
-    overdue: "Overdue",
+    published: "PUBLISHED",
+    draft: "DRAFT",
+    closed: "CLOSED",
   };
+  
 
   return (
     <Card className="overflow-hidden transition-all duration-300 hover:shadow-elevation">
@@ -71,7 +71,8 @@ export const AssignmentCard = ({
         <div>
           <div className="flex items-center gap-2">
             <span className={cn("inline-flex h-6 items-center rounded-full px-2.5 text-xs font-medium", statusColors[status])}>
-              {statusLabels[status]}
+            {statusLabels[status]}
+
             </span>
             <span className="text-xs text-muted-foreground">{course}</span>
           </div>
@@ -108,7 +109,7 @@ export const AssignmentCard = ({
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-1.5">
               <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span>{dueDate}</span>
+              <span>{new Date(dueDate).toLocaleDateString()}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <Users className="h-4 w-4 text-muted-foreground" />
@@ -140,12 +141,7 @@ export const AssignmentCard = ({
               <span>{questions} Student Questions</span>
             </div>
           )}
-          {status === "overdue" && (
-            <div className="flex items-center gap-1 rounded-full bg-overdue/10 px-2 py-1 text-xs text-overdue">
-              <AlertCircle className="h-3 w-3" />
-              <span>Needs Attention</span>
-            </div>
-          )}
+         
         </div>
       </CardContent>
 
@@ -154,10 +150,10 @@ export const AssignmentCard = ({
           <FileText className="mr-1 h-4 w-4" />
           View Details
         </Button>
-        {status === "active" && <Button size="sm" className="h-8">Review Submissions</Button>}
+        {status === "published" && <Button size="sm" className="h-8">Review Submissions</Button>}
         {status === "draft" && <Button size="sm" className="h-8">Publish</Button>}
-        {status === "past" && <Button size="sm" variant="outline" className="h-8">View Analytics</Button>}
-        {status === "overdue" && <Button size="sm" className="h-8">Grade Now</Button>}
+        {status === "closed" && <Button size="sm" variant="outline" className="h-8">View Analytics</Button>}
+
       </CardFooter>
     </Card>
   );
