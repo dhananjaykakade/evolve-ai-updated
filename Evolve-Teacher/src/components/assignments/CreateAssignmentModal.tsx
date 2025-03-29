@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Plus, Upload, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -8,70 +8,115 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { useAuth } from "@/context/AuthContext"; // ✅ Import Auth Context
+import { useAuth } from "@/context/AuthContext";
 
-export const CreateAssignmentModal = () => {
+interface CreateAssignmentModalProps {
+  onSuccess?: () => void;
+}
+
+export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({ onSuccess }) => {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [course, setCourse] = useState("");
-  const [dueDate, setDueDate] = useState("");
-  const [useAI, setUseAI] = useState(true);
-  const [maxMarks, setMaxMarks] = useState(100);
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    course: "",
+    dueDate: "",
+    materials: "",
+    useAI: true,
+    maxMarks: 100,
+    submissionType: "FILE"
+  });
   const [file, setFile] = useState<File | null>(null);
-
-  const { user } = useAuth(); // ✅ Get logged-in teacher details
+  const { user } = useAuth();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      // Validate file type and size
+      const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      if (!validTypes.includes(selectedFile.type)) {
+        toast.error("Please upload a PDF or Word document");
+        return;
+      }
+      if (selectedFile.size > 5 * 1024 * 1024) { // 5MB limit
+        toast.error("File size should be less than 5MB");
+        return;
+      }
+      setFile(selectedFile);
       toast.success("File selected successfully");
     }
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !description || !course || !dueDate) {
+    
+    // Validate required fields
+    if (!formData.title || !formData.description || !formData.course || !formData.dueDate) {
       toast.error("Please fill in all required fields");
       return;
     }
 
-    const formData = new FormData();
-    formData.append("title", title);
-    formData.append("description", description);
-    formData.append("dueDate", dueDate);
-    formData.append("course", course);
-    formData.append("useAI", String(useAI));
-    formData.append("submissionType", "FILE");
-    formData.append("maxMarks", String(maxMarks));
+    const data = new FormData();
+    data.append("title", formData.title);
+    data.append("description", formData.description);
+    data.append("dueDate", new Date(formData.dueDate).toISOString());
+    data.append("course", formData.course);
+    data.append("useAI", String(formData.useAI));
+    data.append("submissionType", formData.submissionType);
+    data.append("maxMarks", String(formData.maxMarks));
+    data.append("status", "DRAFT"); // Default to draft
 
     if (user?.id) {
-      formData.append("teacherId", user.id); // ✅ Attach Teacher ID
-    } else {
-      toast.error("Error: Teacher ID is missing!");
-      return;
+      data.append("teacherId", user.id);
     }
 
-    if (file) formData.append("file", file);
+    if (file) {
+      data.append("file", file);
+    }
 
     setIsLoading(true);
     try {
-      const response = await fetch("http://localhost:8005/assignments", {
+      const response = await fetch("http://localhost:9001/teacher/assignments", {
         method: "POST",
-        body: formData,
+        body: data,
       });
 
-      if (!response.ok) throw new Error("Failed to create assignment");
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to create assignment");
+      }
 
       toast.success("Assignment created successfully!");
       setOpen(false);
+      onSuccess?.(); // Refresh the assignments list
+      resetForm();
     } catch (error) {
       console.error("Error creating assignment:", error);
-      toast.error("Error creating assignment");
+      toast.error(error instanceof Error ? error.message : "Error creating assignment");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      title: "",
+      description: "",
+      course: "",
+      dueDate: "",
+      materials: "",
+      useAI: true,
+      maxMarks: 100,
+      submissionType: "FILE"
+    });
+    setFile(null);
   };
 
   return (
@@ -89,19 +134,37 @@ export const CreateAssignmentModal = () => {
 
         <form onSubmit={handleSubmit} className="space-y-4 py-2">
           <div className="space-y-2">
-            <Label htmlFor="title">Assignment Title</Label>
-            <Input id="title" placeholder="Enter title" value={title} onChange={(e) => setTitle(e.target.value)} />
+            <Label htmlFor="title">Assignment Title *</Label>
+            <Input 
+              id="title" 
+              name="title"
+              placeholder="Enter title" 
+              value={formData.title} 
+              onChange={handleInputChange} 
+              required
+            />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea id="description" placeholder="Describe the assignment" value={description} onChange={(e) => setDescription(e.target.value)} />
+            <Label htmlFor="description">Description *</Label>
+            <Textarea 
+              id="description" 
+              name="description"
+              placeholder="Describe the assignment" 
+              value={formData.description} 
+              onChange={handleInputChange}
+              required
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="course">Course</Label>
-              <Select value={course} onValueChange={setCourse}>
+              <Label htmlFor="course">Course *</Label>
+              <Select 
+                value={formData.course} 
+                onValueChange={(value) => setFormData(prev => ({ ...prev, course: value }))}
+                required
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select course" />
                 </SelectTrigger>
@@ -116,21 +179,65 @@ export const CreateAssignmentModal = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="dueDate">Due Date</Label>
-              <Input id="dueDate" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+              <Label htmlFor="dueDate">Due Date *</Label>
+              <Input 
+                id="dueDate" 
+                type="datetime-local" 
+                name="dueDate"
+                value={formData.dueDate} 
+                onChange={handleInputChange}
+                required
+              />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="maxMarks">Max Marks</Label>
-            <Input id="maxMarks" type="number" value={maxMarks} onChange={(e) => setMaxMarks(Number(e.target.value))} />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="maxMarks">Max Marks</Label>
+              <Input 
+                id="maxMarks" 
+                type="number" 
+                name="maxMarks"
+                min="1"
+                value={formData.maxMarks} 
+                onChange={handleInputChange}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="submissionType">Submission Type</Label>
+              <Select 
+                value={formData.submissionType}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, submissionType: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="FILE">File Upload</SelectItem>
+                  <SelectItem value="TEXT">Text Submission</SelectItem>
+                  <SelectItem value="CODE">Code Submission</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="materials">Materials (Optional)</Label>
             <div className="flex items-center gap-2">
-              <input type="file" id="materials" className="hidden" onChange={handleFileChange} />
-              <Button type="button" variant="outline" className="w-full" onClick={() => document.getElementById("materials")?.click()}>
+              <input 
+                type="file" 
+                id="materials" 
+                className="hidden" 
+                onChange={handleFileChange}
+                accept=".pdf,.doc,.docx"
+              />
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="w-full" 
+                onClick={() => document.getElementById("materials")?.click()}
+              >
                 <Upload className="mr-2 h-4 w-4" />
                 {file ? file.name : "Upload Materials"}
               </Button>
@@ -142,14 +249,28 @@ export const CreateAssignmentModal = () => {
               <div className="flex items-center gap-2">
                 <Label htmlFor="useAI" className="font-medium">Use AI for Grading & Feedback</Label>
               </div>
-              <Switch id="useAI" checked={useAI} onCheckedChange={setUseAI} />
+              <Switch 
+                id="useAI" 
+                checked={formData.useAI} 
+                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, useAI: checked }))} 
+              />
             </div>
           </div>
 
           <DialogFooter className="mt-6">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => {
+              setOpen(false);
+              resetForm();
+            }}>
+              Cancel
+            </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Create Assignment"}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : "Create Assignment"}
             </Button>
           </DialogFooter>
         </form>

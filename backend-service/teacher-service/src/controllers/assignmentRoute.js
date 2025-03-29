@@ -89,7 +89,7 @@ export const getAssignmentsWithSubmissions = apiHandler(async (req, res) => {
   // ✅ Step 2: Fetch Submissions from Student Service
   const assignmentIds = assignments.map((assignment) => assignment._id);
   const submissionsResponse = await axios.get(
-    `http://localhost:9000/student/submissions`,
+    `http://localhost:9001/student/submissions`,
     { params: { assignmentIds } }
   );
 
@@ -114,3 +114,58 @@ export const getAssignmentsWithSubmissions = apiHandler(async (req, res) => {
     { assignments: assignmentsWithSubmissions }
   );
 });
+
+
+// create route with get all the assignments with current student submmisions
+
+export const getStudentAssignmentsWithSubmissions = apiHandler(async (req, res, next) => {
+  
+
+
+
+    const { studentId } = req.query;
+
+
+    if (!studentId) {
+      return ResponseHandler.error(res, 400, "studentId is required");
+    }
+
+    // Fetch Assignments from Teacher Service
+    const assignments = await Assignment.find();
+
+
+    const assignmentIds = assignments.map((assignment) => assignment._id.toString());
+
+    let submissions = [];
+
+      // Fetch Student's Submissions from Student Service
+      const submissionsResponse = await axios.get(`http://localhost:9001/student/submissions/all/assignments`, {
+        params: { studentId, assignmentIds: JSON.stringify(assignmentIds) }, // Ensure array is serialized
+        timeout: 10000, // Set timeout to avoid long waits
+      });
+
+      submissions = submissionsResponse.data.data.Submission || [];
+      // console.log("Student submissions:", submissions);
+
+
+    // Merge Assignments with Submissions
+    const assignmentsWithSubmissions = assignments.map((assignment) => {
+      const studentSubmission = submissions.find(
+        (sub) => sub.assignmentId === assignment._id.toString()
+      );
+
+      return {
+        ...assignment.toObject(),
+        studentSubmission: studentSubmission || null, // If no submission, return null
+      };
+    });
+
+    return ResponseHandler.success(
+      res,
+      200,
+      "Assignments with student's submissions fetched successfully",
+      { assignments: assignmentsWithSubmissions }
+    );
+
+});
+

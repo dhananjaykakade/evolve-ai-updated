@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 interface User {
   id: string;
   email: string;
-  role: "teacher";
+  role: "student";
 }
 
 interface AuthContextType {
@@ -13,7 +13,6 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  setLoading: (loading: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -43,7 +42,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:8001/auth/teacher/login", {
+      const response = await fetch("http://localhost:9000/auth/students/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -55,7 +54,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(data.data.teacher);
       setToken(data.data.token);
       localStorage.setItem("token", data.data.token);
-      localStorage.setItem("user", JSON.stringify(data.data.teacher));
+      localStorage.setItem("user", JSON.stringify(data.data.student));
       
     } catch (error) {
       console.error("Login failed:", error);
@@ -73,7 +72,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout,setLoading }}>
+    <AuthContext.Provider value={{ user, token, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

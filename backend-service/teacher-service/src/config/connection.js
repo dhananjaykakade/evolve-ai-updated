@@ -4,8 +4,8 @@ import dotenv from "dotenv";
 import {logger} from "./logger.js";
 
 dotenv.config();
-const url = "mongodb://127.0.0.1:27017/evolveai_teacher"
-const MONGO_URI =process.env.MONGO_URI || url
+
+const  MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/evolveai_teacher";
 
 const connectDB = async () => {
   try {

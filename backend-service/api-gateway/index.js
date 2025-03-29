@@ -2,46 +2,55 @@ import express from "express";
 import cors from "cors";
 import morgan from "morgan";
 import dotenv from "dotenv";
-import { createProxyMiddleware } from "http-proxy-middleware"; // Import proxy middleware
+import { createProxyMiddleware, fixRequestBody } from "http-proxy-middleware";
 import { execSync } from "child_process";
-
-const NODE_ENV = process.env.NODE_ENV ||"development";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 
 dotenv.config();
 
+const NODE_ENV = process.env.NODE_ENV || "development";
+const PORT = process.env.PORT || 9001;
+
 const app = express();
+
+// Security Middleware
+app.use(helmet());
 app.use(
   cors({
-    origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    origin: process.env.ALLOWED_ORIGINS?.split(",") || "*",
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
     credentials: true,
-    exposedHeaders: ["Content-Type", "Authorization"],
+    exposedHeaders: ["Content-Type", "Authorization", "X-Request-Id"],
   })
 );
-app.use(express.json());
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 1000, // limit each IP to 1000 requests per windowMs
+});
+app.use(limiter);
+
+// Body parsing
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(morgan("dev"));
+app.set("trust proxy", true);
 
-const services = {
-  auth: process.env.AUTH_SERVICE_URL || "http://localhost:8001",
-  teacher: process.env.TEACHER_SERVICE_URL || "http://localhost:8005",
-  student: process.env.STUDENT_SERVICE_URL || "http://localhost:8090",
-  grading: process.env.GRADING_SERVICE_URL || "http://localhost:8002",
-  notification: process.env.NOTIFICATION_SERVICE_URL || "http://localhost:8003",
-};
-
-// Function to check if Docker is running
+// Docker management functions
 const isDockerRunning = () => {
   try {
-    const output = execSync("docker ps").toString();
-    return output.includes("CONTAINER ID");
+    execSync("docker info");
+    return true;
   } catch (error) {
+    console.error("❌ Docker is not running:", error.message);
     return false;
   }
 };
 
-// Start Docker if not running
 const startDocker = () => {
-  console.log("🔍 Checking Docker status...");
   if (!isDockerRunning()) {
     console.log("🚀 Starting Docker services...");
     try {
@@ -51,75 +60,93 @@ const startDocker = () => {
       console.error("❌ Failed to start Docker:", error);
       process.exit(1);
     }
-  } else {
-    console.log("✅ Docker is already running.");
   }
 };
 
-// Start Docker before launching the server
-startDocker();
-
-// Define proxy for each microservice
+// Start Docker if needed
 if (NODE_ENV === "development") {
-  console.log("🛠 Running in Development Mode: Setting up Proxy...");
-
-  app.use(
-    "/auth",
-    createProxyMiddleware({
-      target: services.auth,
-      changeOrigin: true,
-      pathRewrite: { "^/auth/": "/" },
-      onProxyReq: (proxyReq, req, res) => {
-        if (req.body) {
-          let bodyData = JSON.stringify(req.body);
-          proxyReq.setHeader("Content-Length", Buffer.byteLength(bodyData));
-          proxyReq.write(bodyData);
-        }
-      }
-    })
-  );
-
-  app.use(
-    "/teacher",
-    createProxyMiddleware({
-      target: services.teacher,
-      changeOrigin: true,
-      pathRewrite: { "^/teacher": "" },
-    })
-  );
-
-  app.use(
-    "/student",
-    createProxyMiddleware({
-      target: services.student,
-      changeOrigin: true,
-      pathRewrite: { "^/student": "" },
-    })
-  );
-
-  app.use(
-    "/grading",
-    createProxyMiddleware({
-      target: services.grading,
-      changeOrigin: true,
-      pathRewrite: { "^/grading": "" },
-    })
-  );
-
-  app.use(
-    "/notification",
-    createProxyMiddleware({
-      target: services.notification,
-      changeOrigin: true,
-      pathRewrite: { "^/notification": "" },
-    })
-  );
-} else {
-  console.log("🚀 Running in Staging/Production Mode: Nginx will handle routing.");
+  startDocker();
 }
-app.get("/", (req, res) => {
-  res.send("✅ API Gateway is running...");
+
+// Service configuration
+const services = {
+  auth: {
+    target: process.env.AUTH_SERVICE_URL || "http://localhost:8001",
+    pathRewrite: { "^/auth": "" },
+  },
+  teacher: {
+    target: process.env.TEACHER_SERVICE_URL || "http://localhost:8005",
+    pathRewrite: { "^/teacher": "" },
+  },
+  student: {
+    target: process.env.STUDENT_SERVICE_URL || "http://localhost:8090",
+    pathRewrite: { "^/student": "" },
+  },
+  grading: {
+    target: process.env.GRADING_SERVICE_URL || "http://localhost:5003",
+    pathRewrite: { "^/grading": "" },
+  },
+  notification: {
+    target: process.env.NOTIFICATION_SERVICE_URL || "http://localhost:5004",
+    pathRewrite: { "^/notification": "" },
+  },
+};
+
+// Create proxy middleware for each service
+Object.entries(services).forEach(([route, config]) => {
+  app.use(
+    `/${route}`,
+    createProxyMiddleware({
+      ...config,
+      changeOrigin: true,
+      on: {
+        proxyReq: fixRequestBody,
+        error: (err, req, res) => {
+          console.error(`❌ Proxy Error for ${req.method} ${req.originalUrl}:`, err);
+          res.status(502).json({
+            error: "Bad Gateway",
+            message: `Failed to connect to ${route} service`,
+          });
+        },
+      },
+      logger: console,
+      followRedirects: true,
+      timeout: 10000, // 10 seconds timeout
+    })
+  );
+  console.log(`🔌 Registered route /${route} → ${config.target}`);
 });
 
-const PORT = process.env.PORT || 9000;
-app.listen(PORT, () => console.log(`🚀 API Gateway running on port ${PORT}`));
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "healthy",
+    environment: NODE_ENV,
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// Default route
+app.get("/", (req, res) => {
+  res.json({
+    message: "API Gateway is running",
+    environment: NODE_ENV,
+    availableServices: Object.keys(services),
+  });
+});
+
+// Error handling middleware
+app.use((err, req ,res, next) => {
+  console.error("🚨 Gateway Error:", err);
+  res.status(500).json({ error: "Internal Server Error", message: err.message });
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`🚀 API Gateway running on port ${PORT}`);
+  console.log(`🌐 Environment: ${NODE_ENV}`);
+  console.log("🔗 Available routes:");
+  Object.entries(services).forEach(([route, config]) => {
+    console.log(`   /${route} → ${config.target}`);
+  });
+});

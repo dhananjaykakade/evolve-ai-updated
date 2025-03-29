@@ -2,22 +2,19 @@ import { useState,useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
-  
   const [password, setPassword] = useState("");
-  const { login, loading,user,setLoading } = useAuth();
+  const { login, loading,user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    setLoading(true)
     if (user) {
       navigate("/");
     }
-    setLoading(false)
   }, [user, navigate]);
 
 
@@ -32,10 +29,6 @@ export default function LoginPage() {
       console.error("Login failed", error);
     } 
   };
-
-  if(loading){
-    return <div>Loading...</div>
-  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-600 to-purple-700 p-6">

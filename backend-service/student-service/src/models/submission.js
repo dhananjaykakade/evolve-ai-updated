@@ -14,10 +14,18 @@ const submissionSchema = new mongoose.Schema(
       enum: ["PASS", "FAIL", "EXCELLENT", "NEEDS_IMPROVEMENT", "PENDING_REVIEW"],
       default: "PENDING_REVIEW",
     },
-    feedback: { type: String, default: "" },
+    feedback: {
+      strengths: { type: [String], default: [] },
+      weaknesses: { type: [String], default: [] },
+      suggestions: { type: [String], default: [] },
+      generalComments: { type: String, default: "" },
+    },
+    marks: {
+      obtained: { type: Number, default: 0 },
+      total: { type: Number, default: 0 },
+    },
   },
   { timestamps: true }
-  
 );
 
 export default mongoose.model("Submission", submissionSchema);
