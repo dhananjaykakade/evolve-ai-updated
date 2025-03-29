@@ -1,103 +1,34 @@
 {
-  "name": "prisma-client-795c082c69c0c729b7243354655d38b790894594efd4095bf5f242d6be14cfb5",
+  "name": "auth-service",
+  "version": "1.0.0",
+  "description": "",
   "main": "index.js",
-  "types": "index.d.ts",
-  "browser": "index-browser.js",
-  "exports": {
-    "./package.json": "./package.json",
-    ".": {
-      "require": {
-        "node": "./index.js",
-        "edge-light": "./wasm.js",
-        "workerd": "./wasm.js",
-        "worker": "./wasm.js",
-        "browser": "./index-browser.js",
-        "default": "./index.js"
-      },
-      "import": {
-        "node": "./index.js",
-        "edge-light": "./wasm.js",
-        "workerd": "./wasm.js",
-        "worker": "./wasm.js",
-        "browser": "./index-browser.js",
-        "default": "./index.js"
-      },
-      "default": "./index.js"
-    },
-    "./edge": {
-      "types": "./edge.d.ts",
-      "require": "./edge.js",
-      "import": "./edge.js",
-      "default": "./edge.js"
-    },
-    "./react-native": {
-      "types": "./react-native.d.ts",
-      "require": "./react-native.js",
-      "import": "./react-native.js",
-      "default": "./react-native.js"
-    },
-    "./extension": {
-      "types": "./extension.d.ts",
-      "require": "./extension.js",
-      "import": "./extension.js",
-      "default": "./extension.js"
-    },
-    "./index-browser": {
-      "types": "./index.d.ts",
-      "require": "./index-browser.js",
-      "import": "./index-browser.js",
-      "default": "./index-browser.js"
-    },
-    "./index": {
-      "types": "./index.d.ts",
-      "require": "./index.js",
-      "import": "./index.js",
-      "default": "./index.js"
-    },
-    "./wasm": {
-      "types": "./wasm.d.ts",
-      "require": "./wasm.js",
-      "import": "./wasm.js",
-      "default": "./wasm.js"
-    },
-    "./runtime/client": {
-      "types": "./runtime/client.d.ts",
-      "require": "./runtime/client.js",
-      "import": "./runtime/client.js",
-      "default": "./runtime/client.js"
-    },
-    "./runtime/library": {
-      "types": "./runtime/library.d.ts",
-      "require": "./runtime/library.js",
-      "import": "./runtime/library.js",
-      "default": "./runtime/library.js"
-    },
-    "./runtime/binary": {
-      "types": "./runtime/binary.d.ts",
-      "require": "./runtime/binary.js",
-      "import": "./runtime/binary.js",
-      "default": "./runtime/binary.js"
-    },
-    "./generator-build": {
-      "require": "./generator-build/index.js",
-      "import": "./generator-build/index.js",
-      "default": "./generator-build/index.js"
-    },
-    "./sql": {
-      "require": {
-        "types": "./sql.d.ts",
-        "node": "./sql.js",
-        "default": "./sql.js"
-      },
-      "import": {
-        "types": "./sql.d.ts",
-        "node": "./sql.mjs",
-        "default": "./sql.mjs"
-      },
-      "default": "./sql.js"
-    },
-    "./*": "./*"
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon index.js",
+    "seed": "node prisma/seed.js"
   },
-  "version": "6.5.0",
-  "sideEffects": false
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.5.0",
+    "auth-service": "file:",
+    "bcryptjs": "^3.0.2",
+    "bullmq": "^5.44.4",
+    "chalk": "^5.4.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "ioredis": "^5.6.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "nodemailer": "^6.10.0",
+    "redis": "^4.7.0",
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^5.0.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.5.0"
+  }
 }
