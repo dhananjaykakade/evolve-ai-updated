@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import AssignmentCard, { Assignment } from './AssignmentCard';
+import AssignmentCard from './AssignmentCard';
 import { Input } from "@/components/ui/input";
 import { 
   Select, 
@@ -10,136 +10,134 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { Search, Filter } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import axios from 'axios';
+
+interface Feedback {
+  strengths?: string[];
+  weaknesses?: string[];
+  suggestions?: string[];
+  generalComments?: string;
+}
+
+interface Marks {
+  obtained?: number;
+  total?: number;
+}
+
+interface StudentSubmission {
+  _id: string;
+  assignmentId: string;
+  studentId: string;
+  submissionType: string;
+  content: string;
+  fileUrl: string;
+  status: string;
+  isEdited: boolean;
+  gradeStatus: string;
+  feedback: Feedback;
+  marks: Marks;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface Assignment {
+  _id: string;
+  title: string;
+  description: string;
+  dueDate: string;
+  teacherId: string;
+  course: string;
+  materials: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  studentSubmission?: StudentSubmission | null;
+}
 
 const AssignmentList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all');
-  
-  // Sample data - would come from API in real application
-  const assignments: Assignment[] = [
-    {
-      id: 1,
-      title: "Research Paper on Quantum Computing",
-      subject: "Computer Science",
-      dueDate: "Oct 15, 2023",
-      status: "pending",
-      fileUrl: "#",
-    },
-    {
-      id: 2,
-      title: "Mathematics Problem Set 3",
-      subject: "Mathematics",
-      dueDate: "Oct 18, 2023",
-      status: "pending",
-      fileUrl: "#",
-    },
-    {
-      id: 3,
-      title: "Literature Review Essay",
-      subject: "English Literature",
-      dueDate: "Oct 20, 2023",
-      status: "pending",
-      fileUrl: "#",
-    },
-    {
-      id: 4,
-      title: "Physics Lab Report",
-      subject: "Physics",
-      dueDate: "Oct 12, 2023",
-      status: "overdue",
-      fileUrl: "#",
-    },
-    {
-      id: 5,
-      title: "Data Structures Assignment",
-      subject: "Computer Science",
-      dueDate: "Oct 14, 2023",
-      status: "completed",
-      marks: {
-        obtained: 85,
-        total: 100,
-      },
-      fileUrl: "#",
-      submissionUrl: "#",
-      feedback: {
-        strengths: [
-          "Excellent implementation of binary search trees",
-          "Clean code structure with proper documentation",
-          "Efficient algorithms with good time complexity analysis"
-        ],
-        weaknesses: [
-          "Some edge cases not handled properly in graph algorithms",
-          "Memory management could be improved in certain sections"
-        ],
-        suggestions: [
-          "Consider using an adjacency list instead of a matrix for sparse graphs",
-          "Add more comprehensive unit tests for edge cases"
-        ],
-        generalComments: "Overall, this is a strong submission that demonstrates good understanding of data structures. The implementation is clean and well-documented, although there are a few areas that could be improved. Keep up the good work!"
-      }
-    },
-    {
-      id: 6,
-      title: "Organic Chemistry Lab Notes",
-      subject: "Chemistry",
-      dueDate: "Oct 5, 2023",
-      status: "completed",
-      marks: {
-        obtained: 78,
-        total: 100,
-      },
-      fileUrl: "#",
-      submissionUrl: "#",
-      feedback: {
-        strengths: [
-          "Detailed experimental observations",
-          "Good analysis of chemical reactions",
-          "Proper safety protocols followed"
-        ],
-        weaknesses: [
-          "Some reaction diagrams could be clearer",
-          "Data interpretation lacks depth in certain sections"
-        ],
-        suggestions: [
-          "Include more molecular structure drawings",
-          "Elaborate on the reaction mechanisms in more detail"
-        ],
-        generalComments: "Your lab notes show good attention to detail in the experimental process. The analysis demonstrates understanding of basic organic chemistry principles, but could benefit from deeper exploration of reaction mechanisms. Work on your data presentation for future assignments."
-      }
-    },
-  ];
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed' | 'closed'>('all');
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const pendingAssignments = assignments.filter(
-    (assignment) => assignment.status === "pending" || assignment.status === "overdue"
-  );
-  
-  const completedAssignments = assignments.filter(
-    (assignment) => assignment.status === "completed"
-  );
-
-  const filterAssignments = (assignmentList: Assignment[]) => {
-    return assignmentList
-      .filter((assignment) => {
-        // Filter by search term
-        if (searchTerm && !assignment.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
-            !assignment.subject.toLowerCase().includes(searchTerm.toLowerCase())) {
-          return false;
-        }
-        
-        // Filter by subject
-        if (filter !== 'all' && assignment.subject !== filter) {
-          return false;
-        }
-        
-        return true;
-      });
+  const handleSubmissionSuccess = () => {
+    setRefreshKey(prev => prev + 1);
   };
 
-  const filteredPendingAssignments = filterAssignments(pendingAssignments);
-  const filteredCompletedAssignments = filterAssignments(completedAssignments);
+  useEffect(() => {
+    const fetchAssignments = async () => {
+      try {
+        const response = await axios.get(
+          `http://localhost:9001/teacher/assignments/get/students?studentId=${user.id}`
+        );
+        
+        if (response.data.success) {
+          // Sort assignments by due date in descending order (newest first)
+          const sortedAssignments = response.data.data.assignments.sort((a: Assignment, b: Assignment) => 
+            new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime()
+          );
+          setAssignments(sortedAssignments);
+        } else {
+          throw new Error(response.data.message || 'Failed to fetch assignments');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Get unique subjects for filter
-  const subjects = ['all', ...new Set(assignments.map(a => a.subject))];
+    fetchAssignments();
+  }, [user.id, refreshKey]);
+
+  // Filter assignments based on status
+  const getFilteredAssignments = () => {
+    const now = new Date();
+    
+    return assignments.filter(assignment => {
+      // Filter by search term
+      const matchesSearch = searchTerm === '' || 
+        assignment.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        assignment.course.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // Filter by course
+      const matchesCourse = filter === 'all' || assignment.course === filter;
+      
+      // Filter by status
+      const assignmentDueDate = new Date(assignment.dueDate);
+      let matchesStatus = true;
+      
+      if (statusFilter !== 'all') {
+        if (statusFilter === 'pending') {
+          matchesStatus = assignment.status !== "CLOSED" && assignment.studentSubmission ==null && assignmentDueDate >= now;
+        } else if (statusFilter === 'completed') {
+          matchesStatus = assignment.studentSubmission !== null;
+        } else if (statusFilter === 'closed') {
+          matchesStatus = assignment.status === "CLOSED";
+        }
+      }
+      
+      return matchesSearch && matchesCourse && matchesStatus;
+    });
+  };
+
+  const filteredAssignments = getFilteredAssignments();
+  
+  // Get unique courses for filter dropdown
+  const subjects = ['all', ...new Set(assignments.map(a => a.course))];
+
+  if (loading) {
+    return <div className="text-center py-8">Loading assignments...</div>;
+  }
+
+  if (error) {
+    return <div className="text-center text-red-500 py-8">Error: {error}</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -157,54 +155,48 @@ const AssignmentList: React.FC = () => {
         
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <Filter size={16} className="text-muted-foreground" />
-          <Select
-            value={filter}
-            onValueChange={setFilter}
-          >
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Filter by subject" />
+          <Select value={filter} onValueChange={setFilter}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Filter by course" />
             </SelectTrigger>
             <SelectContent>
               {subjects.map((subject) => (
                 <SelectItem key={subject} value={subject}>
-                  {subject === 'all' ? 'All Subjects' : subject}
+                  {subject === 'all' ? 'All Courses' : subject}
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+          
+          <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as any)}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="closed">Closed</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
       
-      <Tabs defaultValue="pending" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-6">
-          <TabsTrigger value="pending">Pending</TabsTrigger>
-          <TabsTrigger value="completed">Completed</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="pending" className="space-y-4">
-          {filteredPendingAssignments.length > 0 ? (
-            filteredPendingAssignments.map((assignment) => (
-              <AssignmentCard key={assignment.id} assignment={assignment} />
-            ))
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-sm text-muted-foreground">No pending assignments found.</p>
-            </div>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="completed" className="space-y-4">
-          {filteredCompletedAssignments.length > 0 ? (
-            filteredCompletedAssignments.map((assignment) => (
-              <AssignmentCard key={assignment.id} assignment={assignment} />
-            ))
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-sm text-muted-foreground">No completed assignments found.</p>
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+      <div className="space-y-4">
+        {filteredAssignments.length > 0 ? (
+          filteredAssignments.map((assignment) => (
+            <AssignmentCard 
+              key={assignment._id} 
+              assignment={assignment} 
+              onSubmissionSuccess={handleSubmissionSuccess}
+            />
+          ))
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-sm text-muted-foreground">No assignments found matching your filters.</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

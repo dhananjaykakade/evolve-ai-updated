@@ -3,6 +3,7 @@ import ResponseHandler from "../utils/CustomResponse.js";
 import axios from "axios";
 import Submission from "../models/submission.js";
 import cloudinary from "../config/cloudinary.js";
+import submission from "../models/submission.js";
 
 export const submitAssignment = apiHandler(async (req, res) => {
   const { assignmentId, studentId, content } = req.body;
@@ -14,8 +15,8 @@ export const submitAssignment = apiHandler(async (req, res) => {
   try {
     // ✅ Step 1: Validate student & assignment
     const [studentResponse, assignmentResponse] = await Promise.allSettled([
-      axios.get(`http://localhost:8001/students/${studentId}`),
-      axios.get(`http://localhost:9000/teacher/assignments/${assignmentId}`)
+      axios.get(`http://localhost:9001/auth/students/${studentId}`),
+      axios.get(`http://localhost:9001/teacher/assignments/${assignmentId}`)
     ]);
 
     console.log("Student API Response:", studentResponse);
@@ -108,7 +109,7 @@ export const editSubmission = apiHandler(async (req, res) => {
   
     // ✅ Step 2: Check if the submission is past the deadline
     const assignmentResponse = await axios.get(
-      `http://localhost:9000/teacher/assignments/${submission.assignmentId}`
+      `http://localhost:8005/teacher/assignments/${submission.assignmentId}`
     );
     if (!assignmentResponse.data.success) {
       return ResponseHandler.notFound(res, "Assignment not found");
@@ -157,7 +158,7 @@ export const editSubmission = apiHandler(async (req, res) => {
   
     // ✅ Step 2: Check if the submission is past the deadline
     const assignmentResponse = await axios.get(
-      `http://localhost:9000/teacher/assignments/${submission.assignmentId}`
+      `http://localhost:8005/teacher/assignments/${submission.assignmentId}`
     );
     if (!assignmentResponse.data.success) {
       return ResponseHandler.notFound(res, "Assignment not found");
@@ -207,4 +208,11 @@ export const getSubmissionsForSingleStudent = apiHandler(async (req, res) => {
     return ResponseHandler.success(res, 200, "Submissions fetched successfully", {
       submissions,
     });
+});
+
+export const getAllSubmissions = apiHandler(async (req, res) =>{
+  const Submission = await submission.find()
+  console.log(Submission)
+  ResponseHandler.success(res, 200, "All submissions fetched successfully", {Submission
+  })
 });

@@ -16,14 +16,24 @@ app.use(cors(
     origin: "*", // Allow requests from any origin
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true, // Enable cookies for cross-origin requests
-    exposedHeaders: ["Content-Type", "Authorization"], // Expose required headers for CORS
+    // exposedHeaders: ["Content-Type", "Authorization"], // Expose required headers for CORS
   }
 ));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 
 
 app.use(httpLogger);
+
+app.post('/', function(req, res) {
+  const { name } = req.body
+  res.json({
+    message: "Hello, World!",
+    timestamp: new Date().toISOString(),
+    name
+  });
+})
 
 // Routes
 
@@ -32,6 +42,7 @@ app.use("/submissions", submissionRoute);
 app.use((req, res, next) => {
   ResponseHandler.notFound(res);
 });
+
 
 // Global error handler middleware
 app.use(errorMiddleware);

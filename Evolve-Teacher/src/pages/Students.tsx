@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ArrowUpRight } from "lucide-react";
+
 import { toast } from "sonner";
 
 const Students = () => {
@@ -28,7 +28,7 @@ const Students = () => {
   useEffect(() => {
     const fetchStudents = async () => {
       try {
-        const response = await fetch("http://localhost:9000/auth/auth/students"); // API corrected
+        const response = await fetch("http://localhost:9001/auth/students/get"); // API corrected
         if (!response.ok) {
           throw new Error("Failed to fetch students");
         }

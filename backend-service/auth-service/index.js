@@ -24,7 +24,15 @@ app.use(express.urlencoded({ extended: true }));
 app.get('/',(req,res) => {
   res.send("default auth route")
 })
+app.post("/", (req, res) => {
+  console.log("Received body:", req.body); // Debugging log
+  if (!req.body || Object.keys(req.body).length === 0) {
+    return res.status(400).json({ error: "No data received in request body" });
+  }
 
+  const { name } = req.body;
+  res.json({ name });
+});
 
 app.use("/auth/admin", adminRoutes);
 app.use("/teacher", teacherRoutes);

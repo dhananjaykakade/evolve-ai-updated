@@ -32,7 +32,7 @@ const Index = () => {
   const fetchAssignments = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:9000/teacher/assignments/${user?.id}/submissions`);
+      const response = await fetch(`http://localhost:9001/teacher/assignments/${user?.id}/submissions`);
       if (!response.ok) throw new Error("Failed to fetch assignments");
 
       const data = await response.json();
@@ -220,6 +220,7 @@ const Index = () => {
                         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                           {filteredAssignments.map((assignment) => (
                             <AssignmentCard
+                            id={assignment.id}
                               key={assignment._id}
                               title={assignment.title}
                               description={assignment.description}

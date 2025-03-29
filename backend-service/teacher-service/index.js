@@ -13,7 +13,7 @@ dotenv.config();
 const app = express();
 
 // Connect to MongoDB
-connectDB();
+
 app.use(cors(
   {
     origin: "*", // Allow requests from any origin
@@ -37,5 +37,6 @@ app.use(errorMiddleware);
 // Start Server
 const PORT = process.env.PORT || 8005;
 app.listen(PORT, () => {
+  connectDB();
   logger.info(`🚀 Teacher Service running on port ${PORT}`);
 });
