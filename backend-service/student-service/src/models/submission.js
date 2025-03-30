@@ -22,8 +22,9 @@ const submissionSchema = new mongoose.Schema(
     },
     marks: {
       obtained: { type: Number, default: 0 },
-      total: { type: Number, default: 0 },
+      total: { type: Number, default: 100 },
     },
+    isAiFeedBack: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

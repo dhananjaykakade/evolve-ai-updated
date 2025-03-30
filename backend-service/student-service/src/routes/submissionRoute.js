@@ -1,5 +1,5 @@
 import express from "express";
-import { submitAssignment ,editSubmission,deleteSubmission,getSubmissions,getSubmissionsForSingleAssignment,getSubmissionsForSingleStudent,getAllSubmissions} from "../controllers/assignmentController.js";
+import { submitAssignment ,editSubmission,deleteSubmission,getSubmissions,getSubmissionsForSingleAssignment,getSubmissionsForSingleStudent,getAllSubmissions,createFeedbackByTeacherToSubmission} from "../controllers/assignmentController.js";
 import multer from "multer";
 
 const router = express.Router();
@@ -15,6 +15,8 @@ router.get("/", getSubmissions);
 // Get all submissions for a specific student and assignment
 
 router.get("/all/assignments", getAllSubmissions);
+
+router.put("/feedback/:submissionId", createFeedbackByTeacherToSubmission);
 
 
 export default router;
