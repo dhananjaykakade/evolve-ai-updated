@@ -216,3 +216,15 @@ export const getAllSubmissions = apiHandler(async (req, res) =>{
   ResponseHandler.success(res, 200, "All submissions fetched successfully", {Submission
   })
 });
+
+
+export const createFeedbackByTeacherToSubmission = apiHandler(async (req, res) => {
+  const { feedback,gradeStatus,marks } = req.body;
+  const {submissionId} = req.params;
+  const sub = await Submission.findByIdAndUpdate({ _id: submissionId }, { gradeStatus,feedback,  marks }, { new: true });
+ 
+  if (!sub) {
+    return ResponseHandler.notFound(res, "Submission not found");
+  }
+  return ResponseHandler.success(res, 200, "Feedback created successfully", { sub });
+})

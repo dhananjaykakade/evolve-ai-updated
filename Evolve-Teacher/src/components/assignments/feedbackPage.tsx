@@ -7,6 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 interface Submission {
   _id: string;
@@ -16,6 +23,8 @@ interface Submission {
   content: string;
   submittedAt: string;
   status: string;
+  gradeStatus: string;
+  marks: marks;
 }
 
 interface FeedbackDialogProps {
@@ -29,10 +38,13 @@ interface FeedbackDialogProps {
     weaknesses: string[];
     suggestions: string[];
     generalComments: string;
-    marks: number;
+    marks: marks;
   }) => Promise<void>;
 }
-
+interface marks{
+  obtained:number;
+  total?:number;
+}
 export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
   assignmentId,
   assignmentTitle,
@@ -42,31 +54,41 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
   onFeedbackSubmit
 }) => {
   const [activeTab, setActiveTab] = useState(0);
+  const [gradeStatus, setGradeStatus] = useState<string>("PENDING_REVIEW");
   const [currentSubmission, setCurrentSubmission] = useState<Submission | null>(null);
   const [strengths, setStrengths] = useState<string[]>([]);
   const [weaknesses, setWeaknesses] = useState<string[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [generalComment, setGeneralComment] = useState('');
-  const [marks, setMarks] = useState(0);
-  const [newPoint, setNewPoint] = useState('');
+  const [Marks, setMarks] = useState(0);
+  const [newStrength, setNewStrength] = useState('');
+  const [newWeakness, setNewWeakness] = useState('');
+  const [newSuggestion, setNewSuggestion] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAddPoint = (type: 'strength' | 'weakness' | 'suggestion') => {
-    if (!newPoint.trim()) return;
-
+    let point = '';
     switch (type) {
       case 'strength':
-        setStrengths([...strengths, newPoint]);
+        point = newStrength.trim();
+        if (!point) return;
+        setStrengths([...strengths, point]);
+        setNewStrength('');
         break;
       case 'weakness':
-        setWeaknesses([...weaknesses, newPoint]);
+        point = newWeakness.trim();
+        if (!point) return;
+        setWeaknesses([...weaknesses, point]);
+        setNewWeakness('');
         break;
       case 'suggestion':
-        setSuggestions([...suggestions, newPoint]);
+        point = newSuggestion.trim();
+        if (!point) return;
+        setSuggestions([...suggestions, point]);
+        setNewSuggestion('');
         break;
     }
 
-    setNewPoint('');
     toast.success('Point added');
   };
 
@@ -94,7 +116,10 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
         weaknesses,
         suggestions,
         generalComments: generalComment,
-        marks
+        marks:{
+          obtained:Marks,
+                 
+        }
       });
       toast.success('Feedback submitted successfully!');
       onOpenChange(false);
@@ -107,7 +132,7 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5" />
@@ -119,8 +144,8 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
           {/* Student List Sidebar */}
           <div className="w-1/3 border-r pr-4">
             <h3 className="font-medium mb-3">Students</h3>
-            <div className="space-y-2 max-h-[500px] overflow-y-auto">
-              {submissions.map((submission, index) => (
+            <div className="space-y-2 max-h-[70vh] overflow-y-auto">
+              {submissions.map((submission) => (
                 <div
                   key={submission._id}
                   className={`p-3 rounded cursor-pointer ${currentSubmission?._id === submission._id ? 'bg-accent' : 'hover:bg-gray-100'}`}
@@ -132,7 +157,7 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
                     setWeaknesses([]);
                     setSuggestions([]);
                     setGeneralComment('');
-                    setMarks(0);
+                    setMarks(Marks);
                   }}
                 >
                   <div className="flex justify-between items-center">
@@ -175,6 +200,7 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
 
                 <div className="border rounded-lg p-4 space-y-4">
                   <div className="grid grid-cols-3 gap-4">
+                    {/* Strengths Column */}
                     <div className="space-y-2">
                       <Label>Strengths</Label>
                       <div className="space-y-2">
@@ -182,25 +208,34 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
                           <div key={index} className="flex items-center gap-2 bg-green-50 p-2 rounded">
                             <Star className="h-4 w-4 text-green-500" />
                             <span className="flex-1 text-sm">{point}</span>
-                            <button onClick={() => handleRemovePoint('strength', index)} className="text-red-500">
+                            <button 
+                              onClick={() => handleRemovePoint('strength', index)} 
+                              className="text-red-500 hover:bg-red-50 p-1 rounded"
+                            >
                               <X className="h-4 w-4" />
                             </button>
                           </div>
                         ))}
                         <div className="flex gap-2">
                           <Input
-                            value={newPoint}
-                            onChange={(e) => setNewPoint(e.target.value)}
+                            value={newStrength}
+                            onChange={(e) => setNewStrength(e.target.value)}
                             placeholder="Add strength"
                             onKeyDown={(e) => e.key === 'Enter' && handleAddPoint('strength')}
+                            className="h-10"
                           />
-                          <Button size="sm" onClick={() => handleAddPoint('strength')}>
+                          <Button 
+                            size="sm" 
+                            onClick={() => handleAddPoint('strength')}
+                            disabled={!newStrength.trim()}
+                          >
                             <Plus className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
                     </div>
 
+                    {/* Weaknesses Column */}
                     <div className="space-y-2">
                       <Label>Areas for Improvement</Label>
                       <div className="space-y-2">
@@ -208,25 +243,34 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
                           <div key={index} className="flex items-center gap-2 bg-yellow-50 p-2 rounded">
                             <X className="h-4 w-4 text-yellow-500" />
                             <span className="flex-1 text-sm">{point}</span>
-                            <button onClick={() => handleRemovePoint('weakness', index)} className="text-red-500">
+                            <button 
+                              onClick={() => handleRemovePoint('weakness', index)} 
+                              className="text-red-500 hover:bg-red-50 p-1 rounded"
+                            >
                               <X className="h-4 w-4" />
                             </button>
                           </div>
                         ))}
                         <div className="flex gap-2">
                           <Input
-                            value={newPoint}
-                            onChange={(e) => setNewPoint(e.target.value)}
+                            value={newWeakness}
+                            onChange={(e) => setNewWeakness(e.target.value)}
                             placeholder="Add improvement"
                             onKeyDown={(e) => e.key === 'Enter' && handleAddPoint('weakness')}
+                            className="h-10"
                           />
-                          <Button size="sm" onClick={() => handleAddPoint('weakness')}>
+                          <Button 
+                            size="sm" 
+                            onClick={() => handleAddPoint('weakness')}
+                            disabled={!newWeakness.trim()}
+                          >
                             <Plus className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
                     </div>
 
+                    {/* Suggestions Column */}
                     <div className="space-y-2">
                       <Label>Suggestions</Label>
                       <div className="space-y-2">
@@ -234,19 +278,27 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
                           <div key={index} className="flex items-center gap-2 bg-blue-50 p-2 rounded">
                             <Check className="h-4 w-4 text-blue-500" />
                             <span className="flex-1 text-sm">{point}</span>
-                            <button onClick={() => handleRemovePoint('suggestion', index)} className="text-red-500">
+                            <button 
+                              onClick={() => handleRemovePoint('suggestion', index)} 
+                              className="text-red-500 hover:bg-red-50 p-1 rounded"
+                            >
                               <X className="h-4 w-4" />
                             </button>
                           </div>
                         ))}
                         <div className="flex gap-2">
                           <Input
-                            value={newPoint}
-                            onChange={(e) => setNewPoint(e.target.value)}
+                            value={newSuggestion}
+                            onChange={(e) => setNewSuggestion(e.target.value)}
                             placeholder="Add suggestion"
                             onKeyDown={(e) => e.key === 'Enter' && handleAddPoint('suggestion')}
+                            className="h-10"
                           />
-                          <Button size="sm" onClick={() => handleAddPoint('suggestion')}>
+                          <Button 
+                            size="sm" 
+                            onClick={() => handleAddPoint('suggestion')}
+                            disabled={!newSuggestion.trim()}
+                          >
                             <Plus className="h-4 w-4" />
                           </Button>
                         </div>
@@ -260,20 +312,43 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
                       value={generalComment}
                       onChange={(e) => setGeneralComment(e.target.value)}
                       placeholder="Write your overall feedback here..."
-                      rows={3}
+                      rows={5}
+                      className="min-h-[120px]"
                     />
                   </div>
 
-                  <div className="space-y-2">
+<div className=' flex gap-4'>
+<div className="space-y-2 w-1/3">
                     <Label>Marks</Label>
                     <Input
                       type="number"
-                      value={marks}
+                      value={Marks}
+                      max={currentSubmission.marks.total}
                       onChange={(e) => setMarks(Number(e.target.value))}
                       placeholder="Enter marks"
                       min={0}
+                      className="h-10"
                     />
                   </div>
+                  <div className="space-y-2 w-1/3">
+  <Label>Grade Status</Label>
+  <Select 
+    value={gradeStatus} 
+    onValueChange={(value) => setGradeStatus(value)}
+  >
+    <SelectTrigger className="w-full">
+      <SelectValue placeholder="Select grade status" />
+    </SelectTrigger>
+    <SelectContent>
+      <SelectItem value="PENDING_REVIEW">Pending Review</SelectItem>
+      <SelectItem value="EXCELLENT">Excellent</SelectItem>
+      <SelectItem value="PASS">Pass</SelectItem>
+      <SelectItem value="NEEDS_IMPROVEMENT">Needs Improvement</SelectItem>
+      <SelectItem value="FAIL">Fail</SelectItem>
+    </SelectContent>
+  </Select>
+</div>
+</div>
 
                   <div className="flex justify-end gap-2 pt-4">
                     <Button variant="outline" onClick={() => onOpenChange(false)}>
