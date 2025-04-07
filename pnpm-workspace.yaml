@@ -4,5 +4,7 @@ packages:
   - "backend-service/teacher-service"
   - "backend-service/student-service"
   - "backend-service/notification-service"
+  - "backend-service/exam-service"
   - "Evolve-Student"
   - "Evolve-Teacher"
+  - "Evolve-Exam"

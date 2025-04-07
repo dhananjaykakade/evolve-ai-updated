@@ -24,7 +24,7 @@ export const createAssignment = apiHandler(async (req, res) => {
       course,
       useAI: useAI || false,
       submissionType: submissionType || "file",
-      status: status || "PUBLISHED",
+      status: "PUBLISHED",
       materials, // Store uploaded file URL
     });
   

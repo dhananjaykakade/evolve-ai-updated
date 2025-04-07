@@ -42,26 +42,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:9000/auth/students/login", {
+      const response = await fetch("http://localhost:9001/auth/students/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-
-      if (!response.ok) throw new Error("Invalid credentials");
-
+  
       const data = await response.json();
-      setUser(data.data.teacher);
+  
+      if (!response.ok) {
+        // Backend might send error as `data.message` or similar
+        throw new Error(data.message || "Invalid credentials");
+      }
+  
+      setUser(data.data.student); // ✅ Fix: use `student`, not `teacher`
       setToken(data.data.token);
       localStorage.setItem("token", data.data.token);
       localStorage.setItem("user", JSON.stringify(data.data.student));
-      
     } catch (error) {
-      console.error("Login failed:", error);
+      console.error("Login failed:", error.message);
+      throw new Error(error.message || "Login failed"); // 👈 Throw it so LoginPage can catch
     } finally {
       setLoading(false);
     }
   };
+  
 
   // 🔹 Logout Function
   const logout = () => {
@@ -69,6 +74,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setToken(null);
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    
   };
 
   return (

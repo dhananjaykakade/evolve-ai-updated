@@ -78,6 +78,9 @@ const DifficultyBadge = ({ level }: { level: string }) => {
 };
 
 const TestCard = ({ test }: { test: any }) => {
+  const startTest = () => {
+    window.open('http://localhost:8084/', '_blank');
+  };
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardHeader>
@@ -116,7 +119,8 @@ const TestCard = ({ test }: { test: any }) => {
       </CardContent>
       <CardFooter>
         <Link to={`/tests/${test.id}`} className="w-full">
-          <Button className="w-full">Start Test</Button>
+        <Button onClick={startTest} size="lg"
+          >Start Test</Button>
         </Link>
       </CardFooter>
     </Card>
@@ -124,6 +128,9 @@ const TestCard = ({ test }: { test: any }) => {
 };
 
 const Tests: React.FC = () => {
+
+
+
   return (
     <Layout title="Tests">
       <div className="space-y-4">

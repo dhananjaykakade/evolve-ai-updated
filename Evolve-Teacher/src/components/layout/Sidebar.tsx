@@ -3,6 +3,8 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
+import { useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   BookOpen,
@@ -29,10 +31,22 @@ const navItems = [
   { name: "Resources", path: "/resources", icon: FileText },
   { name: "Settings", path: "/settings", icon: Settings },
   { name: "Help", path: "/help", icon: HelpCircle },
+  { name: "Logout", path: "/login", icon: X },
 ];
 
 export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
   const location = useLocation();
+    const navigate = useNavigate();
+    const { logout } = useAuth();
+
+    const handleLogout = async () => {
+      try {
+        await logout();
+        navigate("/login");
+      } catch (error) {
+        console.error("Logout failed:", error);
+      }
+    };
 
   return (
     <>
@@ -73,30 +87,46 @@ export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
 
         {/* Navigation */}
         <nav className="flex-1 space-y-1 px-3 py-4">
-          {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <Link
-                key={item.name}
-                to={item.path}
-                className={cn(
-                  "group flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
-                  isActive
-                    ? "bg-white/10 text-white"
-                    : "text-sidebar-foreground/80 hover:bg-white/5 hover:text-white"
-                )}
-                onClick={() => setIsOpen(false)}
-              >
-                <item.icon
-                  className={cn(
-                    "mr-3 h-5 w-5 transition-transform duration-200 group-hover:scale-110",
-                    isActive ? "text-white" : "text-sidebar-foreground/70"
-                  )}
-                />
-                {item.name}
-              </Link>
-            );
-          })}
+        {navItems.map((item) => {
+  const isActive = location.pathname === item.path;
+
+  // Handle Logout separately
+  const isLogout = item.name === "Logout";
+
+  return isLogout ? (
+    <button
+      key={item.name}
+      onClick={handleLogout}
+      className={cn(
+        "w-full text-left group flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 text-sidebar-foreground/80 hover:bg-white/5 hover:text-white"
+      )}
+    >
+      <item.icon className="mr-3 h-5 w-5 text-sidebar-foreground/70 group-hover:scale-110 transition-transform duration-200" />
+      {item.name}
+    </button>
+  ) : (
+    <Link
+      key={item.name}
+      to={item.path}
+      className={cn(
+        "group flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
+        isActive
+          ? "bg-white/10 text-white"
+          : "text-sidebar-foreground/80 hover:bg-white/5 hover:text-white"
+      )}
+      onClick={() => setIsOpen(false)}
+    >
+      <item.icon
+        className={cn(
+          "mr-3 h-5 w-5 transition-transform duration-200 group-hover:scale-110",
+          isActive ? "text-white" : "text-sidebar-foreground/70"
+        )}
+      />
+      {item.name}
+    </Link>
+  );
+})}
+
         </nav>
 
         {/* Footer */}

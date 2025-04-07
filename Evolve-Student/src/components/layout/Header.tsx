@@ -12,6 +12,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,6 +36,7 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
   const { toast } = useToast();
   const { theme, toggleTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
+  const { logout } = useAuth();
 
   const handleLogout = () => {
     // In a real app, you would call an API to logout and clear user session
@@ -158,8 +160,11 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
                 onClick={handleLogout}
                 className="cursor-pointer"
               >
-                <LogOut className="mr-2 h-4 w-4" />
+                <LogOut  className="mr-2 h-4 w-4" />
+                <button onClick={logout}>
+
                 Log out
+                </button>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

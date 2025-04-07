@@ -9,7 +9,7 @@ const assignmentSchema = new mongoose.Schema({
   materials: { type: String, default: "" }, 
 
   // Flags
-  status: { type: String, enum: ["DRAFT", "PUBLISHED", "CLOSED"], default: "DRAFT" },
+  status: { type: String, enum: ["DRAFT", "PUBLISHED", "CLOSED"], default: "PUBLISHED" },
   useAI: { type: Boolean, default: true },
   submissionType: { type: String, enum: ["TEXT", "FILE", "CODE"], default: "TEXT" },
   
