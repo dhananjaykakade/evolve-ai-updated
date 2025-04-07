@@ -5,7 +5,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import assignmentRoutes from "./src/routes/assignmentRoutes.js";
 import errorMiddleware from "./src/middleware/errorMiddleware.js";
-
+import testRoutes from "./src/routes/testRoute.js";
 
 dotenv.config();
 
@@ -28,6 +28,8 @@ app.use(express.json());
 // Routes
 
 app.use("/assignments", assignmentRoutes);
+
+app.use("/tests", testRoutes);
 
 app.get("/", (req, res) => {
   res.send("📚 Teacher Service is Running...");
