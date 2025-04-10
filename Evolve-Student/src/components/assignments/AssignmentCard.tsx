@@ -5,7 +5,8 @@ import {
   Upload, 
   Eye, 
   FileText,
-  Clock
+  Clock,
+  Star, Check, X, AlertCircle 
 } from 'lucide-react';
 import axios from 'axios';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -240,6 +241,29 @@ const AssignmentCard: React.FC<AssignmentCardProps> = ({ assignment, onSubmissio
                   <DialogTitle>Assignment Feedback</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 mt-4">
+                <div className="flex items-center gap-2">
+  {!studentSubmission?.gradeStatus ? (
+    <span className="text-muted-foreground">No feedback available</span>
+  ) : (
+    <>
+      {studentSubmission.gradeStatus === "EXCELLENT" && (
+        <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+      )}
+      {studentSubmission.gradeStatus === "PASS" && (
+        <Check className="h-4 w-4 text-green-500" />
+      )}
+      {studentSubmission.gradeStatus === "NEEDS_IMPROVEMENT" && (
+        <AlertCircle className="h-4 w-4 text-orange-500" />
+      )}
+      {studentSubmission.gradeStatus === "FAIL" && (
+        <X className="h-4 w-4 text-red-500" />
+      )}
+      <span className="font-medium">
+        {studentSubmission.gradeStatus.replace("_", " ")}
+      </span>
+    </>
+  )}
+</div>
                   {studentSubmission.feedback.strengths?.length > 0 && (
                     <div>
                       <h4 className="font-medium">Strengths</h4>
@@ -266,6 +290,15 @@ const AssignmentCard: React.FC<AssignmentCardProps> = ({ assignment, onSubmissio
                     <div>
                       <h4 className="font-medium">Comments</h4>
                       <p>{studentSubmission.feedback.generalComments}</p>
+                    </div>
+                  )}
+
+                  {studentSubmission.marks.obtained && (
+                    <div className="flex items-center gap-2 mt-4">
+                      <h4 className="font-medium">Final Grade</h4>
+                      <span className="font-medium">
+                        {studentSubmission.marks.obtained} / {studentSubmission.marks.total}
+                      </span>
                     </div>
                   )}
                 </div>

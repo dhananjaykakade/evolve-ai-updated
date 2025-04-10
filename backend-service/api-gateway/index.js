@@ -7,6 +7,7 @@ import { execSync } from "child_process";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 
+
 dotenv.config();
 
 const NODE_ENV = process.env.NODE_ENV || "development";
@@ -20,16 +21,20 @@ app.use(
   cors({
     origin: process.env.ALLOWED_ORIGINS?.split(",") || "*",
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With","X-Session-ID","x-session-id"],
     credentials: true,
-    exposedHeaders: ["Content-Type", "Authorization", "X-Request-Id"],
+    exposedHeaders: ["Content-Type", "Authorization", "X-Request-Id","X-Session-ID","x-session-id"],
   })
 );
-
+app.set('trust proxy', 1); 
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // limit each IP to 1000 requests per windowMs
+  max: 1000000, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later',
+  validate: {
+    trustProxy: false // Explicitly disable trust proxy for rate limiting
+  }
 });
 app.use(limiter);
 
@@ -37,7 +42,7 @@ app.use(limiter);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(morgan("dev"));
-app.set("trust proxy", true);
+// app.set("trust proxy", true);
 
 // Docker management functions
 const isDockerRunning = () => {
@@ -90,6 +95,10 @@ const services = {
     target: process.env.NOTIFICATION_SERVICE_URL || "http://localhost:5004",
     pathRewrite: { "^/notification": "" },
   },
+  exam: {
+    target: process.env.NOTIFICATION_SERVICE_URL || "http://localhost:9005",
+    pathRewrite: { "^/exam": "" },
+  },
 };
 
 // Create proxy middleware for each service
@@ -99,6 +108,9 @@ Object.entries(services).forEach(([route, config]) => {
     createProxyMiddleware({
       ...config,
       changeOrigin: true,
+      onProxyReq: (proxyReq) => {
+        proxyReq.setHeader('Connection', 'keep-alive');
+      },
       on: {
         proxyReq: fixRequestBody,
         error: (err, req, res) => {
@@ -118,15 +130,11 @@ Object.entries(services).forEach(([route, config]) => {
 });
 
 // Health check endpoint
-app.get("/health", (req, res) => {
-  res.status(200).json({
-    status: "healthy",
-    environment: NODE_ENV,
-    timestamp: new Date().toISOString(),
-  });
-});
 
-// Default route
+
+
+
+
 app.get("/", (req, res) => {
   res.json({
     message: "API Gateway is running",

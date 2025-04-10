@@ -5,7 +5,9 @@ import dotenv from "dotenv";
 import cors from "cors";
 import assignmentRoutes from "./src/routes/assignmentRoutes.js";
 import errorMiddleware from "./src/middleware/errorMiddleware.js";
-
+import testRoutes from "./src/routes/testRoute.js";
+import questionRoute from "./src/routes/questionRoute.js";
+import codingRoute from "./src/routes/codingRoute.js";
 
 dotenv.config();
 
@@ -28,6 +30,10 @@ app.use(express.json());
 // Routes
 
 app.use("/assignments", assignmentRoutes);
+
+app.use("/tests", testRoutes);
+app.use("/questions", questionRoute);
+app.use("/coding", codingRoute);
 
 app.get("/", (req, res) => {
   res.send("📚 Teacher Service is Running...");
