@@ -126,3 +126,23 @@ export const getTestById = apiHandler(async (req, res) => {
     return ResponseHandler.success(res, 200, 'Test fetched successfully.', test);
     
 })
+
+
+export const reopenTestForStudent = apiHandler(async (req, res) => {
+  const { testId, studentId } = req.params;
+
+  const test = await Test.findById(testId);
+  if (!test) {
+    return ResponseHandler.notFound(res, "Test not found.");
+  }
+
+  // Check if student already has access
+  if (test.reopenedFor.includes(studentId)) {
+    return ResponseHandler.badRequest(res, "Test already reopened for this student.");
+  }
+
+  test.reopenedFor.push(studentId);
+  await test.save();
+
+  return ResponseHandler.success(res, 200, "Test reopened for student.", test);
+});
