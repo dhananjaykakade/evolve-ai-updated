@@ -3,6 +3,9 @@
 import Test from '../models/testModel.js';
 import ResponseHandler from "../utils/CustomResponse.js";
 import apiHandler from "../utils/ApiHandler.js";
+import CodingQuestion from '../models/CodingQuestion.js';
+import MCQQuestion from '../models/MCQquestion.js';
+
 import axios from "axios"
 
 export const createTest = apiHandler(async (req, res) => {
@@ -117,16 +120,27 @@ export const updateTest = apiHandler(async (req, res) => {
   });
   
 
-export const getTestById = apiHandler(async (req, res) => {
+  export const getTestById = apiHandler(async (req, res) => {
     const { id } = req.params;
-    const test = await Test.findById(id);
+  
+    const test = await Test.findById(id).lean(); // Use .lean() to get a plain JS object
+  
     if (!test) {
       return ResponseHandler.notFound(res, 'Test not found.');
     }
+  
+    // Attach questions based on test type
+    if (test.type === 'CODING') {
+      const questions = await CodingQuestion.find({ testId: id });
+      console.log(questions)
+      test.questions = questions;
+    } else if (test.type === 'MCQ') {
+      const questions = await MCQQuestion.find({ testId: id });
+      test.questions = questions;
+    }
+  
     return ResponseHandler.success(res, 200, 'Test fetched successfully.', test);
-    
-})
-
+  });
 
 export const reopenTestForStudent = apiHandler(async (req, res) => {
   const { testId, studentId } = req.params;
@@ -145,4 +159,27 @@ export const reopenTestForStudent = apiHandler(async (req, res) => {
   await test.save();
 
   return ResponseHandler.success(res, 200, "Test reopened for student.", test);
+});
+
+export const getAvailableTests = apiHandler(async (req, res) => {
+  const now = new Date();
+  const tests = await Test.find({ isPublished: true });
+
+  const categorizedTests = {
+    upcoming: [],
+    ongoing: [],
+    expired: []
+  };
+
+  tests.forEach(test => {
+    if (now < new Date(test.scheduledAt)) {
+      categorizedTests.upcoming.push(test);
+    } else if (now >= new Date(test.scheduledAt) && now <= new Date(test.expiresAt)) {
+      categorizedTests.ongoing.push(test);
+    } else {
+      categorizedTests.expired.push(test);
+    }
+  });
+
+  return ResponseHandler.success(res, 200, "Available tests fetched.", categorizedTests);
 });

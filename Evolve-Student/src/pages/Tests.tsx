@@ -1,99 +1,83 @@
-
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Clock, FileText, Code } from 'lucide-react';
+import { Clock, FileText, Code, AlertCircle, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { formatDistanceToNow, format } from 'date-fns';
+import axios from 'axios';
 
-// Mock data for available tests
-const mockTests = {
-  mcq: [
-    {
-      id: 'mcq-1',
-      title: 'Midterm Mathematics Quiz',
-      subject: 'Mathematics',
-      duration: 45,
-      questions: 20,
-      difficulty: 'Medium',
-      type: 'mcq'
-    },
-    {
-      id: 'mcq-2',
-      title: 'Physics Chapter 3 Assessment',
-      subject: 'Physics',
-      duration: 30,
-      questions: 15,
-      difficulty: 'Hard',
-      type: 'mcq'
-    },
-    {
-      id: 'mcq-3',
-      title: 'History Pop Quiz',
-      subject: 'History',
-      duration: 20,
-      questions: 10,
-      difficulty: 'Easy',
-      type: 'mcq'
-    }
-  ],
-  programming: [
-    {
-      id: 'prog-1',
-      title: 'Data Structures Implementation',
-      subject: 'Computer Science',
-      duration: 60,
-      questions: 3,
-      difficulty: 'Hard',
-      type: 'programming',
-      languages: ['JavaScript', 'Python', 'Java']
-    },
-    {
-      id: 'prog-2',
-      title: 'Web Development Challenge',
-      subject: 'Web Programming',
-      duration: 45,
-      questions: 2,
-      difficulty: 'Medium',
-      type: 'programming',
-      languages: ['JavaScript', 'HTML/CSS']
-    }
-  ]
-};
+interface Test {
+  _id: string;
+  title: string;
+  type: 'MCQ' | 'CODING';
+  course: string;
+  scheduledAt: string;
+  expiresAt: string;
+  totalMarks: number;
+  isPublished: boolean;
+  reopenedFor: string[];
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
+}
 
-const DifficultyBadge = ({ level }: { level: string }) => {
-  const colorMap: Record<string, string> = {
-    'Easy': 'bg-green-100 text-green-800',
-    'Medium': 'bg-yellow-100 text-yellow-800',
-    'Hard': 'bg-red-100 text-red-800'
+interface TestResponse {
+  upcoming: Test[];
+  ongoing: Test[];
+  expired: Test[];
+}
+
+const TestStatusBadge = ({ status }: { status: 'upcoming' | 'ongoing' | 'expired' }) => {
+  const statusMap = {
+    upcoming: { text: 'Upcoming', color: 'bg-blue-100 text-blue-800', icon: <AlertCircle size={14} className="mr-1" /> },
+    ongoing: { text: 'Ongoing', color: 'bg-green-100 text-green-800', icon: <CheckCircle size={14} className="mr-1" /> },
+    expired: { text: 'Expired', color: 'bg-gray-100 text-gray-800', icon: <XCircle size={14} className="mr-1" /> }
   };
-  
+
   return (
-    <Badge className={`font-medium ${colorMap[level] || ''}`}>
-      {level}
+    <Badge className={`font-medium ${statusMap[status].color} flex items-center`}>
+      {statusMap[status].icon}
+      {statusMap[status].text}
     </Badge>
   );
 };
 
-const TestCard = ({ test }: { test: any }) => {
+const TestCard = ({ test, status }: { test: Test; status: 'upcoming' | 'ongoing' | 'expired' }) => {
+  const now = new Date();
+  const scheduledAt = new Date(test.scheduledAt);
+  const expiresAt = new Date(test.expiresAt);
+  
+  const isTestAvailable = status === 'ongoing' || 
+    (status === 'upcoming' && now >= scheduledAt && now <= expiresAt);
+
   const startTest = () => {
-    window.open('http://localhost:8084/', '_blank');
+    if (isTestAvailable) {
+      window.open(`http://localhost:8084/test/${test._id}`, '_blank');
+    }
   };
+
+  const getTimeInfo = () => {
+    if (status === 'upcoming') {
+      return `Starts in ${formatDistanceToNow(scheduledAt)} (${format(scheduledAt, 'PPpp')})`;
+    } else if (status === 'ongoing') {
+      return `Ends in ${formatDistanceToNow(expiresAt)}`;
+    } else {
+      return `Expired on ${format(expiresAt, 'PPpp')}`;
+    }
+  };
+
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardHeader>
         <div className="flex justify-between items-start">
           <div>
             <CardTitle className="text-lg">{test.title}</CardTitle>
-            <CardDescription>{test.subject}</CardDescription>
+            <CardDescription>{test.course}</CardDescription>
           </div>
-          {test.type === 'mcq' ? (
-            <FileText size={20} className="text-muted-foreground" />
-          ) : (
-            <Code size={20} className="text-muted-foreground" />
-          )}
+          <TestStatusBadge status={status} />
         </div>
       </CardHeader>
       <CardContent>
@@ -101,35 +85,98 @@ const TestCard = ({ test }: { test: any }) => {
           <div className="flex justify-between items-center text-sm">
             <div className="flex items-center gap-1.5">
               <Clock size={16} />
-              <span>{test.duration} mins</span>
+              <span>{getTimeInfo()}</span>
             </div>
             <div>
-              <span className="font-medium">{test.questions}</span> questions
+              <span className="font-medium">{test.totalMarks}</span> marks
             </div>
           </div>
           <div className="flex items-center justify-between">
-            <DifficultyBadge level={test.difficulty} />
-            {test.type === 'programming' && (
-              <div className="text-xs text-muted-foreground">
-                {test.languages.join(', ')}
-              </div>
+            {test.type === 'MCQ' ? (
+              <Badge variant="outline" className="flex items-center gap-1">
+                <FileText size={14} />
+                Multiple Choice
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="flex items-center gap-1">
+                <Code size={14} />
+                Coding Test
+              </Badge>
             )}
           </div>
         </div>
       </CardContent>
       <CardFooter>
-        <Link to={`/tests/${test.id}`} className="w-full">
-        <Button onClick={startTest} size="lg"
-          >Start Test</Button>
-        </Link>
+        {status === 'expired' ? (
+          <div className="flex flex-row gap-2">
+  <Button variant="outline" className="w-full" disabled>
+    Test Expired
+  </Button>
+  <Button variant="outline" className="w-full" asChild>
+    <Link to={`/tests/${test._id}/result`}>View Result</Link>
+  </Button>
+</div>
+
+        
+        ) : isTestAvailable ? (
+          <Button onClick={startTest} size="lg" className="w-full">
+            Start Test
+          </Button>
+        ) : (
+          <Button variant="outline" className="w-full" disabled>
+            Available {formatDistanceToNow(scheduledAt)}
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );
 };
 
 const Tests: React.FC = () => {
+  const [testData, setTestData] = useState<TestResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    const fetchTests = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get('http://localhost:9001/student/tests/available');
+        if (response.data.success) {
+          setTestData(response.data.data);
+        } else {
+          setError(response.data.message || 'Failed to fetch tests');
+        }
+      } catch (err) {
+        setError('Failed to connect to the server');
+        console.error('Error fetching tests:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
+    fetchTests();
+  }, []);
+
+  if (loading) {
+    return (
+      <Layout title="Tests">
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="animate-spin h-8 w-8 text-primary" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error) {
+    return (
+      <Layout title="Tests">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-red-500">{error}</div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout title="Tests">
@@ -141,26 +188,53 @@ const Tests: React.FC = () => {
           </p>
         </div>
         
-        <Tabs defaultValue="mcq" className="w-full">
+        <Tabs defaultValue="upcoming" className="w-full">
           <TabsList className="mb-4">
-            <TabsTrigger value="mcq">Multiple Choice</TabsTrigger>
-            <TabsTrigger value="programming">Programming</TabsTrigger>
+            <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
+            <TabsTrigger value="ongoing">Ongoing</TabsTrigger>
+            <TabsTrigger value="expired">Expired</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="mcq" className="animate-fade-in">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {mockTests.mcq.map((test) => (
-                <TestCard key={test.id} test={test} />
-              ))}
-            </div>
+          <TabsContent value="upcoming" className="animate-fade-in">
+            {testData?.upcoming && testData.upcoming.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {testData.upcoming.map((test) => (
+                  <TestCard key={test._id} test={test} status="upcoming" />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                No upcoming tests scheduled
+              </div>
+            )}
           </TabsContent>
           
-          <TabsContent value="programming" className="animate-fade-in">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {mockTests.programming.map((test) => (
-                <TestCard key={test.id} test={test} />
-              ))}
-            </div>
+          <TabsContent value="ongoing" className="animate-fade-in">
+            {testData?.ongoing && testData.ongoing.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {testData.ongoing.map((test) => (
+                  <TestCard key={test._id} test={test} status="ongoing" />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                No tests currently in progress
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="expired" className="animate-fade-in">
+            {testData?.expired && testData.expired.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {testData.expired.map((test) => (
+                  <TestCard key={test._id} test={test} status="expired" />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                No expired tests to show
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>

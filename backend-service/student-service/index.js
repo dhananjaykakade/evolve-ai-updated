@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import errorMiddleware from "./src/middleware/errorMiddleware.js"
 import submissionRoute from "./src/routes/submissionRoute.js"
 import connectDB from "./src/config/connection.js"; // Ensure you import the database connection
+import testRoute from "./src/routes/testRoute.js";
 
 
 import ResponseHandler from "./src/utils/CustomResponse.js";
@@ -38,6 +39,7 @@ app.post('/', function(req, res) {
 // Routes
 
 app.use("/submissions", submissionRoute);
+app.use("/tests", testRoute);
 // Handle 404 Not Found
 app.use((req, res, next) => {
   ResponseHandler.notFound(res);
