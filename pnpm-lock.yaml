@@ -120,6 +120,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.56.2
         version: 5.69.3(react@18.3.1)
+      axios:
+        specifier: ^1.8.4
+        version: 1.8.4
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -177,6 +180,9 @@ importers:
       vaul:
         specifier: ^0.9.3
         version: 0.9.9(@types/react-dom@18.3.5(@types/react@18.3.20))(@types/react@18.3.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      ws:
+        specifier: ^8.18.1
+        version: 8.18.1
       zod:
         specifier: ^3.23.8
         version: 3.24.2
@@ -778,12 +784,18 @@ importers:
       express:
         specifier: ^4.21.2
         version: 4.21.2
+      mongoose:
+        specifier: ^8.13.0
+        version: 8.13.0
       morgan:
         specifier: ^1.10.0
         version: 1.10.0
       notification-service:
         specifier: 'file:'
         version: 'link:'
+      ws:
+        specifier: ^8.18.1
+        version: 8.18.1
 
   backend-service/student-service:
     dependencies:

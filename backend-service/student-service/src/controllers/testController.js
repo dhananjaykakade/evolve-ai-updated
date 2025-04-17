@@ -3,6 +3,7 @@
 import apiHandler from '../utils/ApiHandler.js';
 import ResponseHandler from '../utils/CustomResponse.js';
 import CodingAnswer from "../models/codingAnswerModel.js";
+import MCQAnswer from "../models/MCQanswer.js";
 import axios from "axios";
 
 
@@ -49,87 +50,94 @@ export const getTestById = apiHandler(async (req, res) => {
 );
 
 export const startTestForStudent = apiHandler(async (req, res) => {
-    const { testId } = req.params;
-    const { studentId } = req.body;
-  
-    if (!studentId || !testId) {
-      return ResponseHandler.badRequest(res, "studentId and testId are required.");
+try {
+  const { testId } = req.params;
+  const { studentId } = req.body;
+
+  if (!studentId || !testId) {
+    return ResponseHandler.badRequest(res, "studentId and testId are required.");
+  }
+
+  // 1️⃣ Fetch test metadata from Teacher Service
+  const testResponse = await axios.get(`http://localhost:9001/teacher/tests/${testId}`);
+  const test = testResponse.data.data;
+
+  if (!test) {
+    return ResponseHandler.notFound(res, "Test not found.");
+  }
+  console.log("Test metadata:", test);
+
+  // 2️⃣ Check if already started
+  if (test.type === "MCQ") {
+    const existing = await MCQAnswer.findOne({ testId, studentId });
+    if (existing) {
+      return ResponseHandler.conflict(res, "MCQ test already started for this student.");
     }
-  
-    // 1️⃣ Fetch test metadata from Teacher Service
-    const testResponse = await axios.get(`http://localhost:9000/teacher/tests/${testId}`);
-    const test = testResponse.data.data;
-  
-    if (!test) {
-      return ResponseHandler.notFound(res, "Test not found.");
+
+    // 3️⃣ Fetch MCQ questions
+    const questionResponse = await axios.get(`http://localhost:9001/teacher/questions/${testId}`);
+    console.log("MCQ questions:", questionResponse.data.data);
+    const questions = questionResponse.data.data;
+
+    const answers = questions.map(q => ({
+      questionId: q._id,
+      selectedOptionId: null,
+      status: 'unanswered',
+    }));
+
+    const mcqStart = await MCQAnswer.create({
+      testId,
+      studentId,
+      answers,
+      submittedAt: null,
+      warningCount: 0,
+      isAutoSubmitted: false,
+    });
+
+    return ResponseHandler.success(res, 201, "MCQ Test started successfully.", mcqStart);
+  }
+
+  else if (test.type === "CODING") {
+    const existing = await CodingAnswer.findOne({ testId, studentId });
+    if (existing) {
+      return ResponseHandler.conflict(res, "Coding test already started for this student.");
     }
-  
-    // 2️⃣ Check if already started
-    if (test.type === "MCQ") {
-      const existing = await MCQAnswer.findOne({ testId, studentId });
-      if (existing) {
-        return ResponseHandler.conflict(res, "MCQ test already started for this student.");
-      }
-  
-      // 3️⃣ Fetch MCQ questions
-      const questionResponse = await axios.get(`http://localhost:9000/teacher/questions/${testId}`);
-      const questions = questionResponse.data.data.questions;
-  
-      const answers = questions.map(q => ({
-        questionId: q._id,
-        selectedOptionId: null,
-        status: 'unanswered',
-      }));
-  
-      const mcqStart = await MCQAnswer.create({
-        testId,
-        studentId,
-        answers,
-        submittedAt: null,
-        warningCount: 0,
-        isAutoSubmitted: false,
-      });
-  
-      return ResponseHandler.success(res, 201, "MCQ Test started successfully.", mcqStart);
-    }
-  
-    else if (test.type === "CODING") {
-      const existing = await CodingAnswer.findOne({ testId, studentId });
-      if (existing) {
-        return ResponseHandler.conflict(res, "Coding test already started for this student.");
-      }
-  
-      // 3️⃣ Fetch Coding questions
-      const questionResponse = await axios.get(`http://localhost:9000/teacher/coding-questions/${testId}`);
-      const questions = questionResponse.data.data.questions;
-  
-      const answers = questions.map(q => ({
-        questionId: q._id,
-        code: q.starterCode || '',
-        status: 'unanswered',
-      }));
-  
-      const codingStart = await CodingAnswer.create({
-        testId,
-        studentId,
-        answers,
-        submittedAt: null,
-        warningCount: 0,
-        isAutoSubmitted: false,
-      });
-  
-      return ResponseHandler.success(res, 201, "Coding Test started successfully.", codingStart);
-    }
-  
-    else {
-      return ResponseHandler.badRequest(res, "Unsupported test type.");
-    }
+
+    // 3️⃣ Fetch Coding questions
+    const questionResponse = await axios.get(`http://localhost:9001/teacher/coding/${testId}`);
+    console.log("Coding questions:", questionResponse.data.data);
+    const questions = questionResponse.data.data;
+
+    const answers = questions.map(q => ({
+      questionId: q._id,
+      code: q.starterCode || '',
+      status: 'unanswered',
+    }));
+
+    const codingStart = await CodingAnswer.create({
+      testId,
+      studentId,
+      answers,
+      submittedAt: null,
+      warningCount: 0,
+      isAutoSubmitted: false,
+    });
+
+    return ResponseHandler.success(res, 201, "Coding Test started successfully.", codingStart);
+  }
+
+  else {
+    return ResponseHandler.badRequest(res, "Unsupported test type.");
+  }
+} catch (error) {
+  console.log("Error starting test:", error.message);
+}
   });
 
 
   export const submitTest = apiHandler(async (req, res) => {
     const { testId } = req.params;
-    const { studentId } = req.body;
+    const { studentId, warningCount = 0,isAutoSubmitted= false } = req.body;
   
     if (!studentId || !testId) {
       return ResponseHandler.badRequest(res, "studentId and testId are required.");
@@ -149,6 +157,8 @@ export const startTestForStudent = apiHandler(async (req, res) => {
       if (mcqRecord.submittedAt) return ResponseHandler.conflict(res, "Test already submitted.");
       
       mcqRecord.submittedAt = new Date();
+      mcqRecord.warningCount = warningCount;
+      mcqRecord.isAutoSubmitted = isAutoSubmitted; // Mark as auto-submitted
       await mcqRecord.save();
   
       return ResponseHandler.success(res, 200, "MCQ Test submitted successfully.");
@@ -159,6 +169,8 @@ export const startTestForStudent = apiHandler(async (req, res) => {
       if (codingRecord.submittedAt) return ResponseHandler.conflict(res, "Test already submitted.");
   
       codingRecord.submittedAt = new Date();
+      codingRecord.warningCount = warningCount;
+      codingRecord.isAutoSubmitted = isAutoSubmitted; // Mark as auto-submitted
       await codingRecord.save();
   
       return ResponseHandler.success(res, 200, "Coding Test submitted successfully.");
@@ -221,3 +233,69 @@ export const startTestForStudent = apiHandler(async (req, res) => {
   
     return ResponseHandler.success(res, 200, "Code saved successfully.");
   });
+
+// create a api for checking already submitted test or autosubmitted tests find both mcq and coding 
+
+export const checkAllTestStatuses = apiHandler(async (req, res) => {
+  const { studentId } = req.params;
+
+  if (!studentId) {
+    return ResponseHandler.badRequest(res, "studentId is required.");
+  }
+
+
+    const mcqRecords = await MCQAnswer.find({ studentId });
+    const codingRecords = await CodingAnswer.find({ studentId });
+
+    const testStatusMap = {};
+
+    // Process MCQ records
+    mcqRecords.forEach((record) => {
+      const testId = record.testId.toString();
+      if (!testStatusMap[testId]) testStatusMap[testId] = {};
+
+      if (record.submittedAt) {
+        testStatusMap[testId].mcq = record.isAutoSubmitted ? "terminated" : "submitted";
+      } else {
+        testStatusMap[testId].mcq = "not submitted";
+      }
+
+      testStatusMap[testId].mcqAutoSubmitted = record.isAutoSubmitted || false;
+    });
+
+    // Process Coding records
+    codingRecords.forEach((record) => {
+      const testId = record.testId.toString();
+      if (!testStatusMap[testId]) testStatusMap[testId] = {};
+
+      if (record.submittedAt) {
+        testStatusMap[testId].coding = record.isAutoSubmitted ? "terminated" : "submitted";
+      } else {
+        testStatusMap[testId].coding = "not submitted";
+      }
+
+      testStatusMap[testId].codingAutoSubmitted = record.isAutoSubmitted || false;
+    });
+
+    // Fill missing records as "not started"
+    Object.keys(testStatusMap).forEach((testId) => {
+      const status = testStatusMap[testId];
+
+      if (!status.mcq) {
+        status.mcq = "not started";
+        status.mcqAutoSubmitted = false;
+      }
+
+      if (!status.coding) {
+        status.coding = "not started";
+        status.codingAutoSubmitted = false;
+      }
+    });
+
+    return ResponseHandler.success(
+      res,
+      200,
+      "All test statuses fetched successfully.",
+      testStatusMap
+    );
+});

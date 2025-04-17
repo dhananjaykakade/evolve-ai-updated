@@ -7,6 +7,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./routes/ProtectedRoute";
 
+
 // Importing pages
 import Dashboard from "./pages/Dashboard";
 import Assignments from "./pages/Assignments";
@@ -23,6 +24,7 @@ import DeadlinesPage from "./pages/DeadlinesPage";
 import FeedbackDetailsPage from "./pages/FeedbackDetailsPage";
 import LoginPage from "@/components/login/loginform"
 import ResultPage from "./pages/testResult"
+
 
 const queryClient = new QueryClient();
 
@@ -43,6 +45,7 @@ const App = () => (
                 <Route path="/tests/:resultId/result" element={<ResultPage />} />
                 <Route path="/tests" element={<Tests />} />
                 <Route path="/tests/:id" element={<TestTaking />} />
+                
                 <Route path="/feedback" element={<Feedback />} />
                 <Route path="/feedback/:id" element={<FeedbackDetailsPage />} />
                 <Route path="/deadlines" element={<DeadlinesPage />} />

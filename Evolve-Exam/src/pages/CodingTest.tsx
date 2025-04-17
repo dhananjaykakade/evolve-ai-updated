@@ -1,15 +1,65 @@
-
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useTest } from '@/contexts/TestContext';
 import Timer from '@/components/Timer';
 import CodeEditor from '@/components/CodeEditor';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Play, Send, Terminal, ChevronRight, ChevronLeft, Flag, Save, SkipForward } from 'lucide-react';
+import { 
+  AlertTriangle, Play, Send, Terminal, ChevronRight, ChevronLeft, 
+  Flag, Save, SkipForward, RefreshCw, 
+  ChevronDown, ChevronUp, SplitSquareVertical, Code2, FileText, 
+  CheckCircle, XCircle, Info
+} from 'lucide-react';
 import { toast } from 'sonner';
+import axios from 'axios';
 
-const CodingTest: React.FC = () => {
+// Supported languages
+const LANGUAGES = [
+  { id: 62, name: 'Java (OpenJDK 13.0.1)', extension: 'java' },
+  { id: 63, name: 'JavaScript (Node.js 12.14.0)', extension: 'js' },
+  { id: 71, name: 'Python (3.8.1)', extension: 'py' },
+  { id: 54, name: 'C++ (GCC 9.2.0)', extension: 'cpp' },
+  { id: 51, name: 'C# (Mono 6.6.0.161)', extension: 'cs' }
+];
+
+// Create a dedicated API service for Judge0 calls
+const codeExecutionService = {
+  executeCode: async (code: string, languageId: string, input: string, expectedOutput: string) => {
+    try {
+      // Make request to your backend instead of directly to Judge0
+      const response = await axios.post('http://localhost:9001/student/tests/execute', {
+        code,
+        language: languageId,
+        testCases: [{ input, expectedOutput }]
+      });
+      
+      return response.data;
+    } catch (error) {
+      console.error('Code execution failed:', error);
+      throw error;
+    }
+  },
+  
+  runAllTestCases: async (code: string, languageId: number, testCases: { input: string, expectedOutput: string }[]) => {
+    try {
+      const response = await axios.post('http://localhost:9001/student/tests/execute', {
+        code,
+        language: languageId,
+        testCases: testCases.map(tc => ({ input: tc.input, expectedOutput: tc.expectedOutput }))
+      });
+      
+      return response.data;
+    } catch (error) {
+      console.error('Test case execution failed:', error);
+      throw error;
+    }
+  }
+};
+
+const CodingTest = () => {
+  const { testId } = useParams();
   const navigate = useNavigate();
+  const [isInitialized, setIsInitialized] = useState(false);
   const { 
     testType, 
     codingQuestions,
@@ -21,21 +71,71 @@ const CodingTest: React.FC = () => {
     setCodingAnswer,
     updateCodingQuestionStatus,
     submitTest,
-    warningCount
+    warningCount,
+    isLoading,
+    error,
+    startTest
   } = useTest();
   
+  // UI state
   const [testInput, setTestInput] = useState('');
+  const [customInput, setCustomInput] = useState('');
   const [testOutput, setTestOutput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [selectedTestCase, setSelectedTestCase] = useState(0);
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState(LANGUAGES[1]); // Default to Python
+  const [viewMode, setViewMode] = useState('split'); // 'description', 'code', or 'split'
+  const [executionResult, setExecutionResult] = useState(null);
+  const [executionError, setExecutionError] = useState(null);
+  const [allTestResults, setAllTestResults] = useState([]);
+  const [showConsole, setShowConsole] = useState(true);
+  const [showTestResults, setShowTestResults] = useState(false);
+  
+  // Initialize test
+  useEffect(() => {
+    if (testId && !isInitialized) {
+      startTest('coding', testId);
+      setIsInitialized(true);
+    }
+  }, [testId, startTest, isInitialized]);
+  
+  // Handle loading and error states
+  useEffect(() => {
+    if (!isLoading) {
+      if (error) {
+        toast.error('Failed to load questions');
+        navigate('/error');
+      } else if (codingQuestions.length === 0) {
+        const timer = setTimeout(() => {
+          toast.error('Questions taking too long to load');
+          navigate('/error');
+        }, 10000);
+        
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isLoading, error, codingQuestions, navigate]);
   
   // Redirect to home if not in coding test
   useEffect(() => {
-    if (testType !== 'coding') {
+    if (!isLoading && testType !== 'coding' && isInitialized) {
       navigate('/');
     }
-  }, [testType, navigate]);
+  }, [testType, navigate, isLoading, isInitialized]);
   
+  // Show loading state
+  if (isLoading || codingQuestions.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-test-teal mx-auto mb-4"></div>
+          <p className="text-gray-700">Loading test questions...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (testType !== 'coding' || !currentCodingQuestion) {
     return null; // Don't render anything while redirecting
   }
@@ -50,91 +150,143 @@ const CodingTest: React.FC = () => {
     }
   };
 
-  const navigateToQuestion = (index: number) => {
+  const navigateToQuestion = (index) => {
     if (index >= 0 && index < codingQuestions.length) {
       setSelectedTestCase(0); // Reset selected test case when changing questions
       setTestOutput(''); // Clear output
+      setExecutionResult(null); // Clear execution result
+      setExecutionError(null); // Clear execution error
+      setAllTestResults([]); // Clear all test results
+      setShowTestResults(false); // Hide test results
       setCurrentQuestionIndex(index);
     }
   };
 
   const handleSkip = () => {
+    if (!currentCodingQuestion) return;
     updateCodingQuestionStatus(currentCodingQuestion.id, 'skipped');
-    navigateToQuestion(currentQuestionIndex + 1);
+    
+    if (currentQuestionIndex < codingQuestions.length - 1) {
+      navigateToQuestion(currentQuestionIndex + 1);
+    } else {
+      toast.info("You've reached the last question!");
+    }
   };
   
   const handleSave = () => {
+    if (!currentCodingQuestion) return;
     updateCodingQuestionStatus(currentCodingQuestion.id, 'answered');
     toast.success('Code saved!');
   };
   
   const handleReview = () => {
+    if (!currentCodingQuestion) return;
     updateCodingQuestionStatus(currentCodingQuestion.id, 'reviewed');
     toast.info('Question marked for review.');
   };
   
-  const handleRunCode = () => {
-    setIsRunning(true);
-    setTestOutput('Running code...');
+  const handleRunCode = async () => {
+    if (!currentCodingAnswer || !currentCodingQuestion) return;
     
-    // Simple timeout to simulate code execution
-    setTimeout(() => {
-      try {
-        // This is a very simplified evaluation
-        let input = testInput;
+    setIsRunning(true);
+    setTestOutput('Compiling and executing code...');
+    setExecutionResult(null);
+    setExecutionError(null);
+    setShowTestResults(false);
+    
+    try {
+      // Prepare input data
+      const input = showCustomInput ? customInput : currentCodingQuestion.testCases[selectedTestCase].input;
+      const expectedOutput = currentCodingQuestion.testCases[selectedTestCase].expectedOutput;
+      
+      // Execute code
+      const response = await codeExecutionService.executeCode(
+        currentCodingAnswer,
+        currentCodingQuestion.language,
+        input,
+        expectedOutput
+      );
+      
+      // Process results
+      if (response && response.data && response.data.results && response.data.results.length > 0) {
+        const result = response.data.results[0];
+        setExecutionResult(result);
         
-        // If there's no custom input, use the selected test case
-        if (!input && currentCodingQuestion.testCases[selectedTestCase]) {
-          input = currentCodingQuestion.testCases[selectedTestCase].input;
-        }
+        // Format output
+        let outputText = result.output || 'No output generated.';
         
-        // Create a function from the code
-        // WARNING: This is unsafe in a production environment!
-        // This is just a simplified example
-        let evalFunc;
-        let result;
-        
-        if (currentCodingQuestion.difficulty === 'easy') {
-          const funcBody = currentCodingAnswer.replace(/function\s+add\s*\([^)]*\)\s*{/, '').replace(/}$/, '');
-          evalFunc = new Function('a', 'b', funcBody + ' return add(a, b);');
-          const [a, b] = input.split(',').map(Number);
-          result = evalFunc(a, b);
-        } else if (currentCodingQuestion.difficulty === 'medium') {
-          const funcBody = currentCodingAnswer.replace(/function\s+findMissingNumber\s*\([^)]*\)\s*{/, '').replace(/}$/, '');
-          evalFunc = new Function('nums', funcBody + ' return findMissingNumber(nums);');
-          const nums = JSON.parse(input);
-          result = evalFunc(nums);
-        } else if (currentCodingQuestion.difficulty === 'hard') {
-          const funcBody = currentCodingAnswer.replace(/function\s+lengthOfLongestSubstring\s*\([^)]*\)\s*{/, '').replace(/}$/, '');
-          evalFunc = new Function('s', funcBody + ' return lengthOfLongestSubstring(s);');
-          const s = JSON.parse(input);
-          result = evalFunc(s);
-        }
-        
-        setTestOutput(`Output: ${result}`);
-        
-        // Check against expected output
-        if (currentCodingQuestion.testCases[selectedTestCase]) {
-          const expected = currentCodingQuestion.testCases[selectedTestCase].expectedOutput;
-          if (result.toString() === expected) {
-            setTestOutput(prev => prev + '\n✅ Test passed!');
+        // If there's an error, display it
+        if (result.error) {
+          outputText = `Error: ${result.error}`;
+        } 
+        // Otherwise check against expected if not using custom input
+        else if (!showCustomInput) {
+          if (result.passed) {
+            outputText += '\n\n✅ Test passed!';
           } else {
-            setTestOutput(prev => prev + `\n❌ Test failed! Expected: ${expected}`);
+            outputText += `\n\n❌ Test failed!\nExpected: ${expectedOutput}\nGot: ${result.output}`;
           }
         }
-      } catch (error) {
-        setTestOutput(`Error: ${(error as Error).message}`);
-      } finally {
-        setIsRunning(false);
+        
+        setTestOutput(outputText);
+      } else {
+        throw new Error('Invalid response format from execution service');
       }
-    }, 1000);
+    } catch (error) {
+      console.error('Code execution error:', error);
+      setExecutionError(error);
+      setTestOutput(`Error executing code: ${error.message || 'Unknown error'}`);
+    } finally {
+      setIsRunning(false);
+    }
   };
 
-  const handleCodeChange = (code: string) => {
+  const handleSubmitCode = async () => {
+    if (!currentCodingAnswer || !currentCodingQuestion) return;
+    
+    setIsRunning(true);
+    setTestOutput('Validating your solution against all test cases...');
+    setShowTestResults(true);
+    
+    try {
+      // Run against all test cases at once
+      const response = await codeExecutionService.runAllTestCases(
+        currentCodingAnswer,
+        selectedLanguage.id,
+        currentCodingQuestion.testCases
+      );
+      
+      if (response && response.data) {
+        const { results, summary } = response.data;
+        setAllTestResults(results);
+        
+        // Analyze results
+        if (summary.failed === 0) {
+          setTestOutput('✅ All test cases passed! Solution is correct.');
+          updateCodingQuestionStatus(currentCodingQuestion.id, 'answered');
+          toast.success('Solution submitted successfully!');
+        } else {
+          setTestOutput(`❌ ${summary.failed} of ${summary.total} test cases failed. Please check the results.`);
+          toast.error(`${summary.failed} test cases failed. Please fix your solution.`);
+        }
+      } else {
+        throw new Error('Invalid response format from execution service');
+      }
+    } catch (error) {
+      console.error('Code submission error:', error);
+      setExecutionError(error);
+      setTestOutput(`Error submitting code: ${error.message || 'Unknown error'}`);
+      toast.error('Failed to submit solution');
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const handleCodeChange = (code) => {
     setCodingAnswer(currentCodingQuestion.id, code);
   };
   
-  const handleSubmit = () => {
+  const handleSubmitTest = () => {
     const unansweredCount = codingAnswers.filter(a => 
       a.status === 'unanswered' || !a.code
     ).length;
@@ -153,9 +305,11 @@ const CodingTest: React.FC = () => {
 
   // Calculate progress
   const answeredCount = codingAnswers.filter(a => a.status === 'answered').length;
-  const progress = (answeredCount / codingQuestions.length) * 100;
+  const progress = codingQuestions.length > 0 
+    ? (answeredCount / codingQuestions.length) * 100 
+    : 0;
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status) => {
     switch (status) {
       case 'answered': return 'bg-test-teal text-white';
       case 'skipped': return 'bg-test-orange text-white';
@@ -163,88 +317,361 @@ const CodingTest: React.FC = () => {
       default: return 'bg-white';
     }
   };
+
+  const getStatusBadge = (item) => {
+    const status = codingAnswers.find(a => a.questionId === item.id)?.status || 'unanswered';
+    return (
+      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${getStatusColor(status)}`}>
+        {status === 'answered' && <CheckCircle className="h-3 w-3 mr-1" />}
+        {status === 'skipped' && <SkipForward className="h-3 w-3 mr-1" />}
+        {status === 'reviewed' && <Flag className="h-3 w-3 mr-1" />}
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </span>
+    );
+  };
+  
+  const toggleConsole = () => {
+    setShowConsole(!showConsole);
+  };
   
   return (
-    <div className="test-container">
-      <header className="test-header">
-        <div className="flex items-center gap-4">
-          <h1 className="text-lg font-semibold">Coding Test</h1>
-          <span className={`text-sm font-medium ${getDifficultyColor()}`}>
-            {currentCodingQuestion.difficulty.charAt(0).toUpperCase() + currentCodingQuestion.difficulty.slice(1)} Difficulty
-          </span>
+    <div className="test-container flex flex-col h-screen bg-gray-50">
+      <header className="test-header py-2 px-4 bg-white shadow-sm border-b border-gray-200 z-10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <h1 className="text-lg font-semibold">Coding Test</h1>
+            <span className={`text-sm font-medium ${getDifficultyColor()} bg-opacity-10 px-2 py-1 rounded-full`}>
+              {currentCodingQuestion.difficulty.charAt(0).toUpperCase() + currentCodingQuestion.difficulty.slice(1)}
+            </span>
+            
+            {warningCount > 0 && (
+              <div className="flex items-center text-test-orange">
+                <AlertTriangle className="h-4 w-4 mr-1" />
+                <span className="text-sm">Warnings: {warningCount}/3</span>
+              </div>
+            )}
+          </div>
           
-          {warningCount > 0 && (
-            <div className="flex items-center text-test-orange">
-              <AlertTriangle className="h-4 w-4 mr-1" />
-              <span className="text-sm">Warnings: {warningCount}/3</span>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <button 
+                className={`p-1 rounded ${viewMode === 'description' ? 'bg-gray-200' : ''}`}
+                onClick={() => setViewMode('description')}
+                title="Show description only"
+              >
+                <FileText className="h-4 w-4" />
+              </button>
+              <button 
+                className={`p-1 rounded ${viewMode === 'split' ? 'bg-gray-200' : ''}`}
+                onClick={() => setViewMode('split')}
+                title="Split view"
+              >
+                <SplitSquareVertical className="h-4 w-4" />
+              </button>
+              <button 
+                className={`p-1 rounded ${viewMode === 'code' ? 'bg-gray-200' : ''}`}
+                onClick={() => setViewMode('code')}
+                title="Show code only"
+              >
+                <Code2 className="h-4 w-4" />
+              </button>
+            </div>
+            
+            <select 
+              className="text-sm border rounded p-1"
+              value={selectedLanguage.id}
+              onChange={(e) => setSelectedLanguage(LANGUAGES.find(lang => lang.id === parseInt(e.target.value)) || LANGUAGES[0])}
+            >
+              {LANGUAGES.map(lang => (
+                <option key={lang.id} value={lang.id}>{lang.name}</option>
+              ))}
+            </select>
+            
+            <Timer />
+          </div>
+        </div>
+      </header>
+      
+      <div className="flex-grow overflow-hidden">
+        <div className="h-full flex">
+          {/* Left panel - Problem description */}
+          {(viewMode === 'description' || viewMode === 'split') && (
+            <div className={`bg-white overflow-y-auto ${viewMode === 'split' ? 'w-1/2 border-r' : 'w-full'}`}>
+              <div className="p-6">
+                <div className="mb-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <h2 className="text-xl font-semibold">{currentCodingQuestion.title}</h2>
+                    {getStatusBadge(currentCodingQuestion)}
+                  </div>
+                  <div className="text-sm text-gray-500 mb-4 flex items-center">
+                    <span>Question {currentQuestionIndex + 1} of {codingQuestions.length}</span>
+                    <span className="mx-2">•</span>
+                    <div className="flex gap-2 items-center">
+                      <span>Progress:</span>
+                      <div className="w-24 h-2 bg-gray-200 rounded-full">
+                        <div 
+                          className="h-2 bg-test-teal rounded-full" 
+                          style={{ width: `${progress}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-xs">{answeredCount}/{codingQuestions.length}</span>
+                    </div>
+                  </div>
+                  <div className="prose prose-sm max-w-none mb-6">
+                    <p className="whitespace-pre-line">{currentCodingQuestion.description}</p>
+                  </div>
+                  
+                  <div className="mt-6">
+                    <h3 className="text-lg font-medium mb-2">Examples</h3>
+                    {currentCodingQuestion.testCases.map((testCase, idx) => (
+                      <div 
+                        key={idx} 
+                        className={`mb-4 p-3 rounded-md border ${
+                          allTestResults[idx]?.passed === false 
+                            ? 'bg-red-50 border-red-200' 
+                            : allTestResults[idx]?.passed 
+                              ? 'bg-green-50 border-green-200' 
+                              : 'bg-gray-50 border-gray-200'
+                        }`}
+                      >
+                        <div className="flex justify-between mb-1">
+                          <span className="font-medium">Test Case {idx + 1}</span>
+                          {allTestResults[idx] && (
+                            allTestResults[idx].passed 
+                              ? <span className="text-green-600 flex items-center text-xs"><CheckCircle className="h-3 w-3 mr-1" /> Passed</span>
+                              : <span className="text-red-600 flex items-center text-xs"><XCircle className="h-3 w-3 mr-1" /> Failed</span>
+                          )}
+                        </div>
+                        <div className="mb-2">
+                          <span className="font-medium">Input:</span> 
+                          <pre className="mt-1 bg-gray-100 p-2 rounded text-sm">{testCase.input}</pre>
+                        </div>
+                        <div>
+                          <span className="font-medium">Expected Output:</span>
+                          <pre className="mt-1 bg-gray-100 p-2 rounded text-sm">{testCase.expectedOutput}</pre>
+                        </div>
+                        {allTestResults[idx] && allTestResults[idx].output && (
+                          <div className="mt-2">
+                            <span className="font-medium">Your Output:</span>
+                            <pre className={`mt-1 p-2 rounded text-sm ${
+                              allTestResults[idx].passed ? 'bg-green-100' : 'bg-red-100'
+                            }`}>{allTestResults[idx].output}</pre>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="mt-6">
+                    <h3 className="text-lg font-medium mb-2">Constraints</h3>
+                    <ul className="list-disc list-inside text-sm text-gray-700">
+                      {/* These would normally come from your API */}
+                      <li>Time complexity: O(n)</li>
+                      <li>Space complexity: O(1)</li>
+                      <li>1 ≤ input size ≤ 10^5</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Right panel - Code editor */}
+          {(viewMode === 'code' || viewMode === 'split') && (
+            <div className={`flex flex-col ${viewMode === 'split' ? 'w-1/2' : 'w-full'}`}>
+              <div className={`flex-grow ${showConsole ? '' : 'h-full'}`}>
+                <CodeEditor 
+                  initialValue={currentCodingAnswer} 
+                  onChange={handleCodeChange}
+                  language={selectedLanguage.extension}
+                />
+              </div>
+              
+              {showConsole && (
+                <div className="h-1/3 flex flex-col bg-gray-50 border-t border-gray-300">
+                  <div className="flex justify-between items-center px-4 py-2 bg-gray-100 border-b border-gray-300">
+                    <div className="flex items-center">
+                      <h3 className="text-sm font-semibold text-gray-700 flex items-center">
+                        <Terminal className="h-4 w-4 mr-1" />
+                        Console
+                      </h3>
+                      
+                      {executionResult && (
+                        executionResult.passed !== undefined ? (
+                          executionResult.passed 
+                            ? <span className="ml-2 text-xs font-medium text-green-500 flex items-center">
+                                <CheckCircle className="h-3 w-3 mr-1" /> Passed
+                              </span>
+                            : <span className="ml-2 text-xs font-medium text-red-500 flex items-center">
+                                <XCircle className="h-3 w-3 mr-1" /> Failed
+                              </span>
+                        ) : null
+                      )}
+                      
+                      {executionError && (
+                        <span className="ml-2 text-xs font-medium text-red-500 flex items-center">
+                          <AlertTriangle className="h-3 w-3 mr-1" /> Error
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <button
+                        className="text-xs text-gray-500 hover:text-gray-700"
+                        onClick={toggleConsole}
+                        title="Minimize console"
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </button>
+                      
+                      <div>
+                        <button 
+                          className="text-xs text-blue-600 hover:underline flex items-center"
+                          onClick={() => setShowCustomInput(!showCustomInput)}
+                        >
+                          {showCustomInput ? <ChevronUp className="h-3 w-3 mr-1" /> : <ChevronDown className="h-3 w-3 mr-1" />}
+                          {showCustomInput ? "Hide custom input" : "Custom input"}
+                        </button>
+                      </div>
+                      
+                      <select 
+                        className="text-xs border rounded p-1"
+                        value={selectedTestCase}
+                        onChange={(e) => setSelectedTestCase(parseInt(e.target.value))}
+                        disabled={showCustomInput}
+                      >
+                        {currentCodingQuestion.testCases.map((_, idx) => (
+                          <option key={idx} value={idx}>Test Case {idx + 1}</option>
+                        ))}
+                      </select>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRunCode}
+                        disabled={isRunning}
+                        className="flex items-center gap-1 text-xs border-blue-500 text-blue-500 hover:bg-blue-500/10"
+                      >
+                        {isRunning ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
+                        Run
+                      </Button>
+                      
+                      <Button
+                        size="sm"
+                        onClick={handleSubmitCode}
+                        disabled={isRunning}
+                        className="flex items-center gap-1 text-xs bg-test-teal hover:bg-test-teal/90"
+                      >
+                        {isRunning ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
+                        Submit
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {showCustomInput && (
+                    <div className="p-2 border-b border-gray-300 bg-white">
+                      <textarea
+                        className="w-full text-sm font-mono p-2 border border-gray-300 rounded resize-none h-20"
+                        placeholder="Enter your custom input here..."
+                        value={customInput}
+                        onChange={(e) => setCustomInput(e.target.value)}
+                      ></textarea>
+                    </div>
+                  )}
+                  
+                  <div className="flex-grow overflow-y-auto">
+                    <div className="p-4">
+                      {showTestResults && allTestResults.length > 0 ? (
+                        <div>
+                          <div className="mb-3 flex items-center">
+                            <h4 className="font-medium">Test Results Summary:</h4>
+                            <span className="ml-2 px-2 py-1 rounded-full text-xs bg-green-100 text-green-700">
+                              {allTestResults.filter(r => r.passed).length} passed
+                            </span>
+                            {allTestResults.some(r => !r.passed) && (
+                              <span className="ml-2 px-2 py-1 rounded-full text-xs bg-red-100 text-red-700">
+                                {allTestResults.filter(r => !r.passed).length} failed
+                              </span>
+                            )}
+                          </div>
+                          <pre className="font-mono text-sm whitespace-pre-wrap">{testOutput}</pre>
+                        </div>
+                      ) : (
+                        <pre className="font-mono text-sm whitespace-pre-wrap">
+                          {testOutput || (
+                            <div className="text-gray-500 flex items-center">
+                              <Info className="h-4 w-4 mr-2" />
+                              Click "Run" to execute your code or "Submit" to test against all test cases
+                            </div>
+                          )}
+                        </pre>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {!showConsole && (
+                <div 
+                  className="bg-gray-100 p-1 cursor-pointer text-center border-t border-gray-300"
+                  onClick={toggleConsole}
+                >
+                  <ChevronUp className="h-4 w-4 mx-auto" />
+                </div>
+              )}
             </div>
           )}
         </div>
-        
-        <Timer />
-      </header>
+      </div>
       
-      <div className="test-content flex flex-col lg:flex-row gap-6">
-        <div className="flex-grow">
-          <div className="bg-white rounded-lg shadow-md p-6 mb-4">
-            <div className="mb-4">
-              <h2 className="text-xl font-semibold mb-1">{currentCodingQuestion.title}</h2>
-              <div className="text-sm text-gray-500 mb-4">Question {currentQuestionIndex + 1} of {codingQuestions.length}</div>
-              <div className="prose prose-sm max-w-none">
-                <p>{currentCodingQuestion.description}</p>
-              </div>
-            </div>
-            
-            <div className="mt-6">
-              <h3 className="text-sm font-semibold mb-2 text-gray-700">Code Editor</h3>
-              <div className="h-[300px]">
-                <CodeEditor 
-                  initialValue={currentCodingAnswer} 
-                  onChange={handleCodeChange} 
-                />
-              </div>
-            </div>
-
-            <div className="mt-6">
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="text-sm font-semibold text-gray-700 flex items-center">
-                  <Terminal className="h-4 w-4 mr-1" />
-                  Console Output
-                </h3>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleRunCode}
-                  disabled={isRunning}
-                  className="flex items-center gap-1"
-                >
-                  <Play className="h-3 w-3" /> Run
-                </Button>
-              </div>
-              <div className="bg-gray-900 text-gray-100 font-mono text-sm p-3 rounded-md overflow-auto whitespace-pre h-[120px]">
-                {testOutput || 'Click "Run" to execute your code'}
-              </div>
-            </div>
-          </div>
+      <footer className="bg-white border-t border-gray-200 p-3 shadow-sm">
+        <div className="flex justify-between items-center max-w-7xl mx-auto">
+          <Button
+            variant="outline"
+            onClick={() => navigateToQuestion(currentQuestionIndex - 1)}
+            disabled={currentQuestionIndex === 0}
+            className="flex items-center gap-1"
+          >
+            <ChevronLeft className="h-4 w-4" /> Previous
+          </Button>
           
-          <div className="mt-4 flex justify-between">
-            <Button
-              variant="outline"
-              onClick={() => navigateToQuestion(currentQuestionIndex - 1)}
-              disabled={currentQuestionIndex === 0}
-              className="flex items-center gap-1"
-            >
-              <ChevronLeft className="h-4 w-4" /> Previous
-            </Button>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              {codingQuestions.map((_, idx) => {
+                const questionStatus = codingAnswers.find(a => a.questionId === codingQuestions[idx].id)?.status || 'unanswered';
+                return (
+                  <button
+                    key={idx}
+                    className={`w-8 h-8 flex items-center justify-center rounded-full text-sm 
+                      ${idx === currentQuestionIndex ? 'ring-2 ring-test-navy' : ''}
+                      ${questionStatus === 'answered' ? 'bg-test-teal text-white' : 
+                        questionStatus === 'skipped' ? 'bg-test-orange text-white' : 
+                        questionStatus === 'reviewed' ? 'bg-yellow-500 text-white' : 
+                        'bg-gray-200 text-gray-700'}`
+                    }
+                    onClick={() => navigateToQuestion(idx)}
+                  >
+                    {idx + 1}
+                  </button>
+                );
+              })}
+            </div>
             
             <div className="flex gap-2">
               <Button
                 variant="outline"
                 onClick={handleSkip}
                 className="flex items-center gap-1 border-test-orange text-test-orange hover:bg-test-orange/10"
-                disabled={currentQuestionIndex === codingQuestions.length - 1}
               >
                 <SkipForward className="h-4 w-4" /> Skip
+              </Button>
+              
+              <Button
+                variant="outline"
+                onClick={handleReview}
+                className="flex items-center gap-1 border-yellow-500 text-yellow-500 hover:bg-yellow-500/10"
+              >
+                <Flag className="h-4 w-4" /> Review Later
               </Button>
               
               <Button
@@ -254,16 +681,10 @@ const CodingTest: React.FC = () => {
               >
                 <Save className="h-4 w-4" /> Save
               </Button>
-              
-              <Button
-                variant="outline"
-                onClick={handleReview}
-                className="flex items-center gap-1 border-yellow-500 text-yellow-500 hover:bg-yellow-500/10"
-              >
-                <Flag className="h-4 w-4" /> Review
-              </Button>
             </div>
-            
+          </div>
+          
+          <div className="flex gap-2">
             <Button
               variant="outline"
               onClick={() => navigateToQuestion(currentQuestionIndex + 1)}
@@ -272,99 +693,16 @@ const CodingTest: React.FC = () => {
             >
               Next <ChevronRight className="h-4 w-4" />
             </Button>
+            
+            <Button 
+              className="flex items-center gap-1 bg-test-navy hover:bg-test-navy/90"
+              onClick={handleSubmitTest}
+            >
+              <Send className="h-4 w-4" /> Submit Test
+            </Button>
           </div>
         </div>
-        
-        <div className="w-full lg:w-64 bg-white rounded-lg shadow-md p-4">
-          <h3 className="font-semibold text-gray-700 mb-3">Test Cases & Navigation</h3>
-          
-          <div className="mb-4">
-            <div className="h-2 bg-gray-200 rounded-full">
-              <div 
-                className="h-2 bg-test-teal rounded-full" 
-                style={{ width: `${progress}%` }}
-              ></div>
-            </div>
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>{answeredCount} answered</span>
-              <span>{codingQuestions.length} total</span>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-3 gap-2 mb-6">
-            {codingQuestions.map((question, index) => {
-              const answer = codingAnswers.find(a => a.questionId === question.id);
-              const statusClass = getStatusColor(answer?.status || 'unanswered');
-              const isCurrent = index === currentQuestionIndex;
-              
-              return (
-                <button
-                  key={question.id}
-                  className={`question-nav-button ${statusClass} ${isCurrent ? 'current' : ''}`}
-                  onClick={() => navigateToQuestion(index)}
-                >
-                  {index + 1}
-                </button>
-              );
-            })}
-          </div>
-          
-          <div className="mb-6">
-            <h4 className="text-sm font-medium mb-2">Test Cases</h4>
-            <div className="flex mb-2 overflow-x-auto bg-gray-100 rounded-md">
-              {currentCodingQuestion.testCases.map((testCase, index) => (
-                <button
-                  key={index}
-                  className={`px-3 py-2 text-xs whitespace-nowrap ${
-                    selectedTestCase === index 
-                      ? 'bg-test-teal text-white' 
-                      : 'text-gray-700'
-                  }`}
-                  onClick={() => setSelectedTestCase(index)}
-                >
-                  Test {index + 1}
-                </button>
-              ))}
-            </div>
-            <div className="bg-gray-100 p-2 rounded-md">
-              <div className="mb-2">
-                <label className="block text-xs text-gray-600">Input</label>
-                <div className="font-mono text-xs bg-white p-2 rounded border border-gray-300 overflow-x-auto">
-                  {currentCodingQuestion.testCases[selectedTestCase].input}
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs text-gray-600">Expected</label>
-                <div className="font-mono text-xs bg-white p-2 rounded border border-gray-300 overflow-x-auto">
-                  {currentCodingQuestion.testCases[selectedTestCase].expectedOutput}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <Button 
-            className="w-full flex items-center gap-1 bg-test-navy hover:bg-test-navy/90"
-            onClick={handleSubmit}
-          >
-            <Send className="h-4 w-4" /> Submit Test
-          </Button>
-
-          <div className="mt-4 text-xs text-gray-500">
-            <div className="flex items-center gap-1 mb-1">
-              <div className="w-3 h-3 bg-test-teal rounded-full"></div>
-              <span>Answered</span>
-            </div>
-            <div className="flex items-center gap-1 mb-1">
-              <div className="w-3 h-3 bg-test-orange rounded-full"></div>
-              <span>Skipped</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-              <span>Marked for review</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      </footer>
     </div>
   );
 };

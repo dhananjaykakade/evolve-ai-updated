@@ -92,7 +92,7 @@ const services = {
     pathRewrite: { "^/grading": "" },
   },
   notification: {
-    target: process.env.NOTIFICATION_SERVICE_URL || "http://localhost:5004",
+    target: process.env.NOTIFICATION_SERVICE_URL || "http://localhost:8003",
     pathRewrite: { "^/notification": "" },
   },
   exam: {

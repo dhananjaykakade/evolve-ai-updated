@@ -18,6 +18,7 @@ import LoginPage from "./components/login/loginform";
 import { useAuth } from "./context/AuthContext";
 import Tests from "./pages/Tests";
 import TestDetail from "./pages/TestDetail";
+import TestMonitoring from "./pages/testMonitoring";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,7 @@ const App = () => (
               <Route path="/tests" element={<Tests />} />
               <Route path="/tests/:testId" element={<TestDetail />} />
             {/* 🔹 Protected Routes (Only for Logged-in Users) */}
+              <Route path="/test-monitoring" element={<TestMonitoring />} />
             <Route element={<ProtectedRoute />}>
               <Route path="/" element={<Index />} />
               <Route path="/assignments" element={<Assignments />} />

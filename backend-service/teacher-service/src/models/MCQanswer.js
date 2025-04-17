@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 const mcqAnswerSchema = new mongoose.Schema({
-  studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
+  studentId: {type:String , required: true}, // Store student UUID from PostgreSQL
   testId: { type: mongoose.Schema.Types.ObjectId, ref: 'Test', required: true },
   answers: [
     {

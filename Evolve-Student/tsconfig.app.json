@@ -26,5 +26,5 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "../Evolve-Teacher/src/pages/testMonitoring.tsx", "../Evolve-Teacher/src/pages/RealtimeLogs.tsx"]
 }
