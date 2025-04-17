@@ -1,14 +1,18 @@
-
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTest } from '@/contexts/TestContext';
 import Timer from '@/components/Timer';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, ChevronRight, ChevronLeft, Flag, Save, SkipForward, Send } from 'lucide-react';
 import { toast } from 'sonner';
+import { useParams } from 'react-router-dom';
+import axios from 'axios';
 
 const MCQTest: React.FC = () => {
+  const { testId } = useParams();
   const navigate = useNavigate();
+  const [isInitialized, setIsInitialized] = useState(false);
+  
   const { 
     testType, 
     mcqQuestions, 
@@ -18,24 +22,95 @@ const MCQTest: React.FC = () => {
     setMCQAnswer,
     updateQuestionStatus,
     submitTest,
-    warningCount
+    warningCount,
+    isLoading,
+    error,
+    startTest,
+    user
   } = useTest();
-  
-  // Redirect to home if not in MCQ test
+
+  // Fix #1: Avoid destructuring startTest separately which creates a separate reference
+  // and could contribute to re-renders
+
+  // Initialize test only once
   useEffect(() => {
-    if (testType !== 'mcq') {
+    if (testId && !isInitialized) {
+      startTest('mcq', testId);
+      setIsInitialized(true);
+    }
+  }, [testId, startTest, isInitialized]);
+  
+  // Handle loading and error states
+  useEffect(() => {
+    // Fix #2: Only run this effect when not loading
+    if (!isLoading) {
+      if (error) {
+        toast.error('Failed to load questions');
+        navigate('/error');
+      } else if (mcqQuestions.length === 0) {
+        // Fix #3: Create error timeout only if no questions are loaded
+        const timer = setTimeout(() => {
+          toast.error('Questions taking too long to load');
+          navigate('/error');
+        }, 10000);
+        
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isLoading, error, mcqQuestions.length, navigate]);
+  
+  // Redirect to home if not in MCQ test - only after loading is complete
+  useEffect(() => {
+    if (!isLoading && testType !== 'mcq' && isInitialized) {
       navigate('/');
     }
-  }, [testType, navigate]);
+  }, [testType, navigate, isLoading, isInitialized]);
+
+
   
+  
+  // Show loading state
+  if (isLoading || mcqQuestions.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-test-teal mx-auto mb-4"></div>
+          <p className="text-gray-700">Loading test questions...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (testType !== 'mcq') {
     return null; // Don't render anything while redirecting
   }
   
+  // Fix #4: Handle case when questions array is empty or current index is out of bounds
+  if (mcqQuestions.length === 0 || currentQuestionIndex >= mcqQuestions.length) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <AlertTriangle className="h-12 w-12 text-test-orange mx-auto mb-4" />
+          <p className="text-gray-700">No questions available for this test.</p>
+          <Button 
+            className="mt-4" 
+            onClick={() => navigate('/')}
+          >
+            Return to Home
+          </Button>
+        </div>
+      </div>
+    );
+  }
+  
   const currentQuestion = mcqQuestions[currentQuestionIndex];
-  const currentAnswer = mcqAnswers.find(a => a.questionId === currentQuestion.id);
+  // Fix #5: Safely handle the case when currentQuestion might be undefined
+  const currentAnswer = currentQuestion 
+    ? mcqAnswers.find(a => a.questionId === currentQuestion.id) 
+    : undefined;
   
   const handleOptionSelect = (optionId: string) => {
+    if (!currentQuestion) return;
     setMCQAnswer(currentQuestion.id, optionId);
   };
   
@@ -46,11 +121,19 @@ const MCQTest: React.FC = () => {
   };
   
   const handleSkip = () => {
+    if (!currentQuestion) return;
     updateQuestionStatus(currentQuestion.id, 'skipped');
-    navigateToQuestion(currentQuestionIndex + 1);
+    
+    // Fix #6: Check if this is the last question before navigating
+    if (currentQuestionIndex < mcqQuestions.length - 1) {
+      navigateToQuestion(currentQuestionIndex + 1);
+    } else {
+      toast.info("You've reached the last question!");
+    }
   };
   
   const handleSave = () => {
+    if (!currentQuestion) return;
     if (currentAnswer?.selectedOptionId) {
       updateQuestionStatus(currentQuestion.id, 'answered');
       toast.success('Answer saved!');
@@ -60,6 +143,7 @@ const MCQTest: React.FC = () => {
   };
   
   const handleReview = () => {
+    if (!currentQuestion) return;
     updateQuestionStatus(currentQuestion.id, 'reviewed');
     toast.info('Question marked for review.');
   };
@@ -92,7 +176,9 @@ const MCQTest: React.FC = () => {
   
   // Calculate progress
   const answeredCount = mcqAnswers.filter(a => a.status === 'answered').length;
-  const progress = (answeredCount / mcqQuestions.length) * 100;
+  const progress = mcqQuestions.length > 0 
+    ? (answeredCount / mcqQuestions.length) * 100 
+    : 0;
   
   return (
     <div className="test-container">
@@ -118,17 +204,25 @@ const MCQTest: React.FC = () => {
               <h2 className="text-lg font-semibold mb-4">
                 Question {currentQuestionIndex + 1} of {mcqQuestions.length}
               </h2>
-              <p className="text-gray-800 text-lg">{currentQuestion.questionText}</p>
+              <p className="text-gray-800 text-lg">{currentQuestion?.questionText}</p>
             </div>
             
             <div className="space-y-3">
-              {currentQuestion.options.map((option) => (
+              {currentQuestion?.options?.map((option) => (
                 <div
                   key={option.id}
-                  className={`mcq-option ${currentAnswer?.selectedOptionId === option.id ? 'selected' : ''}`}
+                  className={`mcq-option p-3 border rounded-md flex items-center cursor-pointer hover:bg-gray-50 transition-colors ${
+                    currentAnswer?.selectedOptionId === option.id 
+                      ? 'border-test-teal bg-test-teal/10' 
+                      : 'border-gray-200'
+                  }`}
                   onClick={() => handleOptionSelect(option.id)}
                 >
-                  <div className="w-6 h-6 rounded-full border-2 border-gray-400 flex items-center justify-center mr-3">
+                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center mr-3 ${
+                    currentAnswer?.selectedOptionId === option.id 
+                      ? 'border-test-teal' 
+                      : 'border-gray-400'
+                  }`}>
                     {currentAnswer?.selectedOptionId === option.id && (
                       <div className="w-3 h-3 rounded-full bg-test-teal"></div>
                     )}
@@ -187,7 +281,7 @@ const MCQTest: React.FC = () => {
           </div>
         </div>
         
-        <div className="w-full lg:w-64 bg-white rounded-lg shadow-md p-4">
+        <div className="w-full lg:w-64 bg-white rounded-lg shadow-md p-4 flex flex-col">
           <h3 className="font-semibold text-gray-700 mb-3">Question Navigator</h3>
           
           <div className="mb-4">
@@ -203,7 +297,7 @@ const MCQTest: React.FC = () => {
             </div>
           </div>
           
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-5 gap-2 mb-4">
             {mcqQuestions.map((question, index) => {
               const answer = mcqAnswers.find(a => a.questionId === question.id);
               const statusClass = getStatusColor(answer?.status || 'unanswered');
@@ -212,8 +306,16 @@ const MCQTest: React.FC = () => {
               return (
                 <button
                   key={question.id}
-                  className={`question-nav-button ${statusClass} ${isCurrent ? 'current' : ''}`}
+                  className={`question-nav-button w-8 h-8 flex items-center justify-center rounded-md text-sm ${statusClass} ${
+                    isCurrent ? 'ring-2 ring-offset-1 ring-test-navy' : ''
+                  }`}
                   onClick={() => navigateToQuestion(index)}
+                  aria-label={`Go to question ${index + 1}`}
+                  title={
+                    answer?.status 
+                      ? `Question ${index + 1} (${answer.status})` 
+                      : `Question ${index + 1} (unanswered)`
+                  }
                 >
                   {index + 1}
                 </button>
@@ -221,7 +323,7 @@ const MCQTest: React.FC = () => {
             })}
           </div>
           
-          <div className="mt-6">
+          <div className="mt-auto">
             <Button 
               className="w-full flex items-center gap-1 bg-test-navy hover:bg-test-navy/90"
               onClick={handleSubmit}

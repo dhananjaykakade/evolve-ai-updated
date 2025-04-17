@@ -64,3 +64,13 @@ export const deleteQuestion = apiHandler(async (req, res) => {
     return ResponseHandler.success(res, 200, "Question deleted successfully.", deleted);
   });
 
+// get all questions for a test by id 
+
+export const getAllQuestions = apiHandler(async (req, res) => {
+
+   const { testId } = req.params;
+  
+    const questions = await MCQQuestion.find({ testId });
+  
+    return ResponseHandler.success(res, 200, "MCQ questions fetched successfully.", questions);
+})

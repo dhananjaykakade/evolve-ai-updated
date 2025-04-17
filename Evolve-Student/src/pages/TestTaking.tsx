@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -624,11 +623,41 @@ const TestTaking: React.FC = () => {
   
   return (
     <Layout title={test.title}>
-      {test.type === 'mcq' ? (
-        <MCQTest test={test} />
-      ) : (
-        <ProgrammingTest test={test} />
-      )}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-2xl">{test.title}</CardTitle>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Badge variant="secondary">{test.subject}</Badge>
+            <Badge variant="outline">
+              <Clock className="mr-1 h-4 w-4" />
+              {test.duration} minutes
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Test Overview</h3>
+              <ul className="list-disc pl-6 space-y-2">
+                <li>Type: {test.type.toUpperCase()} Test</li>
+                <li>Number of Questions: {test.questions.length}</li>
+                <li>Duration: {test.duration} minutes</li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter>
+          <Button 
+            className="w-full"
+            onClick={() => {
+              // Redirect to the exam portal with the new route format
+              window.location.href = `http://localhost:8084/test/${test.id}`;
+            }}
+          >
+            Start Test
+          </Button>
+        </CardFooter>
+      </Card>
     </Layout>
   );
 };

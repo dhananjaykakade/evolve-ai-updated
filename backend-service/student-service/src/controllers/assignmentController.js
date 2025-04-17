@@ -228,3 +228,19 @@ export const createFeedbackByTeacherToSubmission = apiHandler(async (req, res) =
   }
   return ResponseHandler.success(res, 200, "Feedback created successfully", { sub });
 })
+
+
+// creaete route to find student name by id
+
+export const getStudentNameById = apiHandler(async (req, res) => {
+  const { studentId } = req.params;
+  const studentResponse = await axios.get(`http://localhost:9001/auth/students/${studentId}`);
+  
+  if (!studentResponse.data.success) {
+    return ResponseHandler.notFound(res, "Student not found");
+  }
+  
+  const student = studentResponse.data.data;
+  return ResponseHandler.success(res, 200, "Student fetched successfully", { student });
+}
+)

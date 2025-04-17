@@ -31,6 +31,8 @@ interface Submission {
   content: string;
   submittedAt: string;
   status: string;
+  gradeStatus?: string; // Add missing properties
+  marks?: number;       // Add missing properties
 }
 
 interface AssignmentCardProps {
