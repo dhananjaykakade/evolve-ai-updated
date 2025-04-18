@@ -25,6 +25,7 @@ interface SidebarProps {
 const navItems = [
   { name: "Dashboard", path: "/", icon: LayoutDashboard },
   { name: "Assignments", path: "/assignments", icon: BookOpen },
+  { name: "tests", path: "/tests", icon: BookOpen },
   { name: "Students", path: "/students", icon: Users },
   { name: "AI Tools", path: "/ai-tools", icon: BrainCircuit },
   { name: "Chat Support", path: "/chat", icon: MessageCircle },
@@ -32,6 +33,8 @@ const navItems = [
   { name: "Settings", path: "/settings", icon: Settings },
   { name: "Help", path: "/help", icon: HelpCircle },
   { name: "Logout", path: "/login", icon: X },
+  { name: "results", path: "/student-results", icon: MessageCircle },
+
 ];
 
 export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {

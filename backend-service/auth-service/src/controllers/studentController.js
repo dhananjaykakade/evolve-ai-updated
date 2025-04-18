@@ -45,9 +45,24 @@ export const getStudents = apiHandler(async (req, res) => {
 
 export const getSingleStudent = apiHandler(async (req, res) => {
   const { id } = req.params;
+
   const student = await prisma.student.findUnique({ where: { id } });
   if (!student) {
     return ResponseHandler.notFound(res, "Student not found.");
   }
-  return ResponseHandler.success(res, 200, "Student fetched successfully", { student });
-})
+
+  const admin = await prisma.admin.findUnique({ where: { id: student.adminId } });
+  if (!admin) {
+    return ResponseHandler.notFound(res, "Admin not found.");
+  }
+
+  // Filter sensitive data from both student and admin
+  const { password: studentPassword, createdAt: studentCreatedAt, ...safeStudentData } = student;
+  const { password: adminPassword, email: adminEmail, isVerified, createdAt: adminCreatedAt, ...safeAdminData } = admin;
+
+  return ResponseHandler.success(res, 200, "Student fetched successfully", {
+    student: safeStudentData,
+    admin: safeAdminData,
+  });
+});
+

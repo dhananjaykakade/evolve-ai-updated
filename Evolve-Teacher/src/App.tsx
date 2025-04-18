@@ -19,6 +19,8 @@ import { useAuth } from "./context/AuthContext";
 import Tests from "./pages/Tests";
 import TestDetail from "./pages/TestDetail";
 import TestMonitoring from "./pages/testMonitoring";
+import StudentResults from "./pages/studentResult";
+import TeacherResultPage from "./pages/TeacherResultPage";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +39,8 @@ const App = () => (
               <Route path="/tests/:testId" element={<TestDetail />} />
             {/* 🔹 Protected Routes (Only for Logged-in Users) */}
               <Route path="/test-monitoring" element={<TestMonitoring />} />
+              <Route path="/student-results" element={<StudentResults />} />
+              <Route path="/results/:testId/:studentId/:testType" element={<TeacherResultPage />} />
             <Route element={<ProtectedRoute />}>
               <Route path="/" element={<Index />} />
               <Route path="/assignments" element={<Assignments />} />
