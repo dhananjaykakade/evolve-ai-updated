@@ -244,3 +244,11 @@ export const getStudentNameById = apiHandler(async (req, res) => {
   return ResponseHandler.success(res, 200, "Student fetched successfully", { student });
 }
 )
+
+export const getSubmissionsForSingleAssignmentBystudent = apiHandler(async (req, res) => {
+  const { assignmentId,studentId } = req.params;
+  const submissions = await Submission.find({ assignmentId, studentId });
+  return ResponseHandler.success(res, 200, "Submissions fetched successfully", {
+    submissions,
+  });
+});
