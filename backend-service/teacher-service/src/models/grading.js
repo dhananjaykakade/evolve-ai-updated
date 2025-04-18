@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 const gradingSchema = new mongoose.Schema({
-  studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
+  studentId: { type:String, required: true },
   testId: { type: mongoose.Schema.Types.ObjectId, ref: 'Test', required: true },
   totalMarks: { type: Number, required: true },
   obtainedMarks: { type: Number, required: true },

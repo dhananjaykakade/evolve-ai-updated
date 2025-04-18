@@ -81,7 +81,7 @@ print(main(*parsed))` :
           {
             headers: {
               "Content-Type": "application/json",
-              "X-RapidAPI-Key": "a5d5bcfd95mshffa57e5a81d9497p1651aajsn89952ccf9857 ",
+              "X-RapidAPI-Key": "c9b305005dmsh15e921b03ca7b35p107daajsn62e5211ca687",
               "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com"
             },
             timeout: 15000

@@ -10,110 +10,94 @@ import axios from 'axios';
 import { format } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
 
-interface TestResult {
-  _id: string;
-  testId: string;
-  studentId: string;
-  answers: {
-    questionId: string;
-    selectedOption?: string;
-    codeAnswer?: string;
-    isCorrect: boolean;
-    marksObtained: number;
+// Interface for answer review data
+interface QuestionReview {
+  questionId: string;
+  questionText: string;
+  options: {
+    id: string;
+    text: string;
   }[];
-  totalMarksObtained: number;
-  testDetails: {
-    _id: string;
-    title: string;
-    type: 'MCQ' | 'CODING';
-    course: string;
-    totalMarks: number;
-    duration: number;
-    scheduledAt: string;
-    expiresAt: string;
-  };
-  submittedAt: string;
-  status: 'completed' | 'in-progress' | 'expired';
+  correctOptionId: string;
+  studentSelectedOptionId: string;
+  isCorrect: boolean;
 }
 
-// Mock data for development
-const mockTestResult: TestResult = {
-  _id: "mock123",
-  testId: "test123",
-  studentId: "student123",
-  answers: [
-    {
-      questionId: "q1",
-      selectedOption: "A",
-      isCorrect: true,
-      marksObtained: 5
-    },
-    {
-      questionId: "q2",
-      selectedOption: "B",
-      isCorrect: false,
-      marksObtained: 0
-    },
-    {
-      questionId: "q3",
-      codeAnswer: "console.log('Hello World')",
-      isCorrect: true,
-      marksObtained: 10
-    }
-  ],
-  totalMarksObtained: 15,
-  testDetails: {
-    _id: "test123",
-    title: "JavaScript Fundamentals",
-    type: "MCQ",
-    course: "Web Development",
-    totalMarks: 20,
-    duration: 60,
-    scheduledAt: new Date().toISOString(),
-    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-  },
-  submittedAt: new Date().toISOString(),
-  status: "completed"
-};
+// Interface for test result summary
+interface TestEvaluation {
+  _id: string;
+  studentId: string;
+  testId: string;
+  totalMarks: number;
+  obtainedMarks: number;
+  percentage: number;
+  grade: string;
+  aiFeedback: string;
+  submittedAt: string;
+  evaluatedAt: string;
+  evaluatedBy: string;
+}
+
+// Combined interface for the complete test result
+interface TestResult {
+  evaluation: TestEvaluation | null;
+  questions: QuestionReview[];
+  loading: boolean;
+  error: string | null;
+}
 
 const ResultPage: React.FC = () => {
-  const { user, loading, token } = useAuth();
+  const { user, loading: authLoading, token } = useAuth();
   const { resultId } = useParams<{ resultId: string }>();
-  const [result, setResult] = useState<TestResult | null>(null);
-  const [Loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [testResult, setTestResult] = useState<TestResult>({
+    evaluation: null,
+    questions: [],
+    loading: true,
+    error: null
+  });
 
   useEffect(() => {
-    console.log('User:', user);
-    console.log('ResultId:', resultId);
-
+    if (authLoading) return;
     if (!user || !resultId) {
-      setError('User or result ID not found');
-      setLoading(false);
+      setTestResult(prev => ({
+        ...prev,
+        loading: false,
+        error: 'User or result ID not found'
+      }));
       return;
     }
 
-    // Simulate API call with mock data
-    const fetchResult = async () => {
+    const fetchTestResult = async () => {
       try {
-        setLoading(true);
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // First API: Get the test evaluation summary
+        const evaluationResponse = await axios.post('http://localhost:9001/teacher/tests/evaluate', {
+          testId: resultId,
+          studentId: user.id
+        });
         
-        // Use mock data
-        setResult(mockTestResult);
-        setLoading(false);
+        // Second API: Get the detailed answer review
+        const reviewResponse = await axios.get(`http://localhost:9001/teacher/tests/answers/${resultId}/${user.id}`);
+        
+        setTestResult({
+          evaluation: evaluationResponse.data.data,
+          questions: reviewResponse.data.data,
+          loading: false,
+          error: null
+        });
       } catch (err) {
-        setError('Failed to load test result');
-        console.error('Error:', err);
-        setLoading(false);
+        console.error('Error fetching test results:', err);
+        setTestResult(prev => ({
+          ...prev,
+          loading: false,
+          error: 'Failed to load test result'
+        }));
       }
     };
 
-    fetchResult();
-  }, [resultId, user]);
+    fetchTestResult();
+  }, [resultId, user, authLoading]);
 
-  if (loading) {
+  if (authLoading || testResult.loading) {
     return (
       <Layout title="Test Result">
         <div className="flex justify-center items-center h-64">
@@ -123,17 +107,17 @@ const ResultPage: React.FC = () => {
     );
   }
 
-  if (error) {
+  if (testResult.error) {
     return (
       <Layout title="Test Result">
         <div className="flex justify-center items-center h-64">
-          <div className="text-red-500">{error}</div>
+          <div className="text-red-500">{testResult.error}</div>
         </div>
       </Layout>
     );
   }
 
-  if (!result) {
+  if (!testResult.evaluation || testResult.questions.length === 0) {
     return (
       <Layout title="Test Result">
         <div className="flex justify-center items-center h-64">
@@ -143,9 +127,10 @@ const ResultPage: React.FC = () => {
     );
   }
 
-  const percentage = (result.totalMarksObtained / result.testDetails.totalMarks) * 100;
-  const correctAnswers = result.answers.filter(a => a.isCorrect).length;
-  const totalQuestions = result.answers.length;
+  const { evaluation, questions } = testResult;
+  const correctAnswers = questions.filter(q => q.isCorrect).length;
+  const totalQuestions = questions.length;
+  const submittedDate = new Date(evaluation.submittedAt);
 
   return (
     <Layout title="Test Result">
@@ -160,13 +145,13 @@ const ResultPage: React.FC = () => {
         </div>
 
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">{result.testDetails.title}</h1>
+          <h1 className="text-3xl font-bold tracking-tight">MCQ Test Result</h1>
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <div>{result.testDetails.course}</div>
+            <div>Test ID: {evaluation.testId}</div>
             <div>•</div>
-            <div>{result.testDetails.type}</div>
+            <div>MCQ Assessment</div>
             <div>•</div>
-            <div>Submitted on {format(new Date(result.submittedAt), 'PPpp')}</div>
+            <div>Submitted on {format(submittedDate, 'PPpp')}</div>
           </div>
         </div>
 
@@ -175,14 +160,14 @@ const ResultPage: React.FC = () => {
             <CardHeader className="pb-2">
               <CardDescription>Score</CardDescription>
               <CardTitle className="text-4xl">
-                {result.totalMarksObtained}/{result.testDetails.totalMarks}
+                {evaluation.obtainedMarks.toFixed(2)}/{evaluation.totalMarks}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-xs text-muted-foreground">
-                {percentage.toFixed(1)}% correct
+                {evaluation.percentage.toFixed(1)}% correct
               </div>
-              <Progress value={percentage} className="h-2 mt-2" />
+              <Progress value={evaluation.percentage} className="h-2 mt-2" />
             </CardContent>
           </Card>
 
@@ -203,40 +188,40 @@ const ResultPage: React.FC = () => {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Test Duration</CardDescription>
+              <CardDescription>Grade</CardDescription>
               <CardTitle className="text-4xl">
-                {result.testDetails.duration} mins
+                {evaluation.grade}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-xs text-muted-foreground">
-                Completed in {Math.floor(result.testDetails.duration * 0.8)} mins
+                {evaluation.percentage >= 90 ? 'Excellent' : 
+                 evaluation.percentage >= 80 ? 'Very Good' : 
+                 evaluation.percentage >= 70 ? 'Good' : 
+                 evaluation.percentage >= 60 ? 'Satisfactory' : 'Needs Improvement'}
               </div>
-              <Progress value={80} className="h-2 mt-2" />
+              <Progress 
+                value={evaluation.percentage} 
+                className={`h-2 mt-2 ${
+                  evaluation.percentage >= 80 ? 'bg-green-200' : 
+                  evaluation.percentage >= 60 ? 'bg-yellow-200' : 'bg-red-200'
+                }`} 
+              />
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Status</CardDescription>
+              <CardDescription>Evaluation</CardDescription>
               <CardTitle className="text-2xl">
-                <Badge
-                  variant={result.status === 'completed' ? 'default' : result.status === 'expired' ? 'destructive' : 'outline'}
-                  className="capitalize"
-                >
-                  {result.status === 'in-progress' ? 'In Progress' : result.status}
+                <Badge variant="default" className="capitalize">
+                  {evaluation.evaluatedBy}
                 </Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-xs text-muted-foreground">
-                {result.status === 'completed' ? (
-                  'Successfully completed'
-                ) : result.status === 'expired' ? (
-                  'Test expired before completion'
-                ) : (
-                  'Test still in progress'
-                )}
+                Evaluated on {format(new Date(evaluation.evaluatedAt), 'PPp')}
               </div>
             </CardContent>
           </Card>
@@ -249,23 +234,27 @@ const ResultPage: React.FC = () => {
               <CardDescription>Detailed performance by question</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {result.answers.map((answer, index) => (
-                <div key={answer.questionId} className="flex items-start gap-4">
+              {questions.map((question, index) => (
+                <div key={question.questionId} className="flex items-start gap-4">
                   <div className="flex-shrink-0">
-                    {answer.isCorrect ? (
+                    {question.isCorrect ? (
                       <Check className="h-5 w-5 text-green-500" />
                     ) : (
                       <X className="h-5 w-5 text-red-500" />
                     )}
                   </div>
                   <div className="flex-1">
-                    <div className="font-medium">Question {index + 1}</div>
-                    <div className="text-sm text-muted-foreground">
-                      Marks: {answer.marksObtained}
+                    <div className="font-medium">{question.questionText}</div>
+                    <div className="text-sm mt-1">
+                      <span className="font-medium">Your answer:</span> {
+                        question.options.find(opt => opt.id === question.studentSelectedOptionId)?.text || 'Not answered'
+                      }
                     </div>
-                    {result.testDetails.type === 'MCQ' && (
-                      <div className="text-sm">
-                        Your answer: {answer.selectedOption || 'Not answered'}
+                    {!question.isCorrect && (
+                      <div className="text-sm mt-1 text-green-600">
+                        <span className="font-medium">Correct answer:</span> {
+                          question.options.find(opt => opt.id === question.correctOptionId)?.text || 'Unknown'
+                        }
                       </div>
                     )}
                   </div>
@@ -281,53 +270,41 @@ const ResultPage: React.FC = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <div className="font-medium mb-2">Time Management</div>
+                <div className="font-medium mb-2">AI Feedback</div>
+                <div className="text-sm p-3 bg-gray-50 rounded-md">
+                  {evaluation.aiFeedback}
+                </div>
+              </div>
+
+              <div>
+                <div className="font-medium mb-2">Score Analysis</div>
                 <div className="flex items-center gap-2 text-sm">
                   <ClockIcon className="h-4 w-4" />
-                  <span>You completed the test with 20% time remaining</span>
+                  <span>You scored {evaluation.percentage}% on this assessment</span>
                 </div>
               </div>
 
               <div>
                 <div className="font-medium mb-2">Strongest Areas</div>
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="default">Variables (100%)</Badge>
-                  <Badge variant="default">Functions (90%)</Badge>
-                  <Badge variant="default">Loops (85%)</Badge>
+                  {getStrongestTopics(questions).map(topic => (
+                    <Badge key={topic} variant="default">{topic}</Badge>
+                  ))}
                 </div>
               </div>
 
               <div>
                 <div className="font-medium mb-2">Areas to Improve</div>
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="destructive">Objects (40%)</Badge>
-                  <Badge variant="destructive">Arrays (50%)</Badge>
+                  {getWeakestTopics(questions).map(topic => (
+                    <Badge key={topic} variant="destructive">{topic}</Badge>
+                  ))}
                 </div>
               </div>
-
-              {result.testDetails.type === 'CODING' && (
-                <div>
-                  <div className="font-medium mb-2">Code Quality</div>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-green-500" />
-                      <span>Good variable naming</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <X className="h-4 w-4 text-red-500" />
-                      <span>Missing comments in complex sections</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <AlertCircle className="h-4 w-4 text-yellow-500" />
-                      <span>Moderate code duplication detected</span>
-                    </div>
-                  </div>
-                </div>
-              )}
             </CardContent>
             <CardFooter>
-              <Button variant="outline" className="w-full">
-                View Detailed Feedback
+              <Button className="w-full" onClick={() => window.print()}>
+                Download Result
               </Button>
             </CardFooter>
           </Card>
@@ -336,5 +313,33 @@ const ResultPage: React.FC = () => {
     </Layout>
   );
 };
+
+// Helper function to identify topic strengths (simplified example)
+function getStrongestTopics(questions: QuestionReview[]): string[] {
+  const correctQuestions = questions.filter(q => q.isCorrect);
+  
+  // This is a simplified placeholder - in a real app you'd categorize questions by topic
+  // and analyze which topics had the highest success rates
+  if (correctQuestions.length > questions.length * 0.8) {
+    return ['Overall Knowledge', 'Core Concepts'];
+  } else if (correctQuestions.length > questions.length * 0.5) {
+    return ['Basic Understanding'];
+  }
+  return ['Basic Concepts'];
+}
+
+// Helper function to identify topic weaknesses (simplified example)
+function getWeakestTopics(questions: QuestionReview[]): string[] {
+  const incorrectQuestions = questions.filter(q => !q.isCorrect);
+  
+  // This is a simplified placeholder - in a real app you'd categorize questions by topic
+  // and analyze which topics had the lowest success rates
+  if (incorrectQuestions.length > questions.length * 0.5) {
+    return ['Advanced Concepts', 'Complex Topics'];
+  } else if (incorrectQuestions.length > questions.length * 0.2) {
+    return ['Intermediate Areas'];
+  }
+  return incorrectQuestions.length > 0 ? ['Specific Concepts'] : [];
+}
 
 export default ResultPage;

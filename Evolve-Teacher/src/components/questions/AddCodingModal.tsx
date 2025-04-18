@@ -23,6 +23,13 @@ export const AddCodingModal = ({ testId, onSuccess }: { testId: string, onSucces
   const [open, setOpen] = useState(false);
 
   const handleSubmit = async () => {
+
+
+    const processedTestCases = testCases.map(tc => ({
+      input: tc.input.replace(/\\n/g, '\n'),  // Convert \n to actual newlines
+      expectedOutput: tc.expectedOutput.replace(/\\n/g, '\n')
+    }));
+
     try {
       await axios.post("http://localhost:9001/teacher/coding", {
         testId,
@@ -31,7 +38,7 @@ export const AddCodingModal = ({ testId, onSuccess }: { testId: string, onSucces
         difficulty,
         language,
         starterCode,
-        testCases,
+        testCases:processedTestCases,
         marks
       });
 
@@ -158,6 +165,8 @@ export const AddCodingModal = ({ testId, onSuccess }: { testId: string, onSucces
                   onChange={(e) => {
                     const newCases = [...testCases];
                     newCases[idx].input = e.target.value;
+                    // refine \n to actual newlines
+                    newCases[idx].input = newCases[idx].input.replace(/\\n/g, '\n');
                     setTestCases(newCases);
                   }} 
                   placeholder="Input (e.g., [1,2,3], 5, 'test')" 

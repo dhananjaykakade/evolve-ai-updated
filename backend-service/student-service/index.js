@@ -5,6 +5,7 @@ import errorMiddleware from "./src/middleware/errorMiddleware.js"
 import submissionRoute from "./src/routes/submissionRoute.js"
 import connectDB from "./src/config/connection.js"; // Ensure you import the database connection
 import testRoute from "./src/routes/testRoute.js";
+import Airoute from "./src/routes/Airoute.js";
 
 
 import ResponseHandler from "./src/utils/CustomResponse.js";
@@ -40,6 +41,7 @@ app.post('/', function(req, res) {
 
 app.use("/submissions", submissionRoute);
 app.use("/tests", testRoute);
+app.use("/", Airoute);
 // Handle 404 Not Found
 app.use((req, res, next) => {
   ResponseHandler.notFound(res);
