@@ -34,7 +34,7 @@ app.post("/", (req, res) => {
   res.json({ name });
 });
 
-app.use("/auth/admin", adminRoutes);
+app.use("/admin", adminRoutes);
 app.use("/teacher", teacherRoutes);
 app.use("/students", studentRoutes);
 

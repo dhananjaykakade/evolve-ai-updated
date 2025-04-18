@@ -1,0 +1,63 @@
+
+{
+  "admins": [
+    {
+      "id": "a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6",
+      "name": "John Doe",
+      "instituteName": "ABC University",
+      "email": "admin@example.com",
+      "password": "password123",
+      "isVerified": true,
+      "createdAt": "2023-01-15T08:30:00.000Z"
+    }
+  ],
+  "teachers": [
+    {
+      "id": "t1e2a3c4-h5e6r7-a8b9c0-d1e2f3g4h5i6",
+      "name": "Jane Smith",
+      "email": "teacher1@example.com",
+      "password": "teacher123",
+      "adminId": "a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6",
+      "isActive": true,
+      "createdAt": "2023-02-10T10:15:00.000Z"
+    },
+    {
+      "id": "t2e3a4c5-h6e7r8-b9c0d1-e2f3g4h5i6j7",
+      "name": "Robert Johnson",
+      "email": "teacher2@example.com",
+      "password": "teacher456",
+      "adminId": "a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6",
+      "isActive": true,
+      "createdAt": "2023-02-15T14:20:00.000Z"
+    }
+  ],
+  "students": [
+    {
+      "id": "s1t2u3d4-e5n6t7-a8b9c0-d1e2f3g4h5i6",
+      "name": "Alice Williams",
+      "email": "student1@example.com",
+      "password": "student123",
+      "adminId": "a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6",
+      "isActive": true,
+      "createdAt": "2023-03-05T09:45:00.000Z"
+    },
+    {
+      "id": "s2t3u4d5-e6n7t8-b9c0d1-e2f3g4h5i6j7",
+      "name": "Bob Brown",
+      "email": "student2@example.com",
+      "password": "student456",
+      "adminId": "a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6",
+      "isActive": true,
+      "createdAt": "2023-03-08T11:30:00.000Z"
+    },
+    {
+      "id": "s3t4u5d6-e7n8t9-c0d1e2-f3g4h5i6j7k8",
+      "name": "Charlie Davis",
+      "email": "student3@example.com",
+      "password": "student789",
+      "adminId": "a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6",
+      "isActive": false,
+      "createdAt": "2023-03-10T14:15:00.000Z"
+    }
+  ]
+}

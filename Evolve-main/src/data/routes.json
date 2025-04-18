@@ -1,0 +1,8 @@
+
+{
+  "/api/auth/login": "/admins?email=:email",
+  "/api/auth/register": "/admins",
+  "/api/teachers": "/teachers",
+  "/api/students": "/students",
+  "/api/*": "/$1"
+}
