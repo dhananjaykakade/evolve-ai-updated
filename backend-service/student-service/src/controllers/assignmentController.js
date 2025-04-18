@@ -230,7 +230,7 @@ export const createFeedbackByTeacherToSubmission = apiHandler(async (req, res) =
 })
 
 
-// creaete route to find student name by id
+// creaete route to find student name by 
 
 export const getStudentNameById = apiHandler(async (req, res) => {
   const { studentId } = req.params;
@@ -245,10 +245,25 @@ export const getStudentNameById = apiHandler(async (req, res) => {
 }
 )
 
+// 
+
 export const getSubmissionsForSingleAssignmentBystudent = apiHandler(async (req, res) => {
   const { assignmentId,studentId } = req.params;
+// share assignmnet file with assignment 
+
+  const assignmentResponse = await axios.get(`http://localhost:9001/teacher/assignments/${assignmentId}`);
+  if (!assignmentResponse.data.success) {
+    return ResponseHandler.notFound(res, "Assignment not found");
+  }
+  const assignment = assignmentResponse.data.data;
+console.log(assignment)
+
+
   const submissions = await Submission.find({ assignmentId, studentId });
+
+  submissions.material = assignment.materials;
   return ResponseHandler.success(res, 200, "Submissions fetched successfully", {
     submissions,
+    materials: assignment.materials,
   });
 });
