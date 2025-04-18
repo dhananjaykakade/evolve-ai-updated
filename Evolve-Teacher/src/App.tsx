@@ -35,13 +35,13 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             
+            <Route element={<ProtectedRoute />}>
               <Route path="/tests" element={<Tests />} />
               <Route path="/tests/:testId" element={<TestDetail />} />
             {/* 🔹 Protected Routes (Only for Logged-in Users) */}
               <Route path="/test-monitoring" element={<TestMonitoring />} />
               <Route path="/student-results" element={<StudentResults />} />
               <Route path="/results/:testId/:studentId/:testType" element={<TeacherResultPage />} />
-            <Route element={<ProtectedRoute />}>
               <Route path="/" element={<Index />} />
               <Route path="/assignments" element={<Assignments />} />
               <Route path="/students" element={<Students />} />

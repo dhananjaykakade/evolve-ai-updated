@@ -21,25 +21,33 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
-  const [loading, setLoading] = useState(false);
+  // Start with loading true until we check authentication
+  const [loading, setLoading] = useState(true);
 
-  // 🔹 Check if user is already logged in (on page refresh)
+  // Check if user is already logged in (on page refresh)
   useEffect(() => {
-
-    const storedUser = localStorage.getItem("user");
-    if (storedUser && token) {
-      setUser(JSON.parse(storedUser));
-    }
-    else{
+    const checkAuth = () => {
+      const storedToken = localStorage.getItem("token");
+      const storedUser = localStorage.getItem("user");
+      
+      if (storedUser && storedToken) {
+        setUser(JSON.parse(storedUser));
+        setToken(storedToken);
+      } else {
         setUser(null);
         setToken(null);
         localStorage.removeItem("token");
         localStorage.removeItem("user");
-    }
-    setLoading(false);
-  }, [token]);
+      }
+      
+      // Only set loading to false after we've checked authentication
+      setLoading(false);
+    };
+    
+    checkAuth();
+  }, []);
 
-  // 🔹 Login Function
+  // Login Function
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
@@ -56,18 +64,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error(data.message || "Invalid credentials");
       }
   
-      setUser(data.data.teacher); // ✅ Fix: use `student`, not `teacher`
+      setUser(data.data.teacher);
       setToken(data.data.token);
       localStorage.setItem("token", data.data.token);
       localStorage.setItem("user", JSON.stringify(data.data.teacher));
     } catch (error) {
       console.error("Login failed:", error.message);
-      throw new Error(error.message || "Login failed"); // 👈 Throw it so LoginPage can catch
+      throw new Error(error.message || "Login failed");
     } finally {
       setLoading(false);
     }
   };
-  // 🔹 Logout Function
+  
+  // Logout Function
   const logout = () => {
     setUser(null);
     setToken(null);
@@ -76,7 +85,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout,setLoading }}>
+    <AuthContext.Provider value={{ user, token, loading, login, logout, setLoading }}>
       {children}
     </AuthContext.Provider>
   );
