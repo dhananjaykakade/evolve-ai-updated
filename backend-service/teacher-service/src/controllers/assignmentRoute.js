@@ -169,3 +169,34 @@ export const getStudentAssignmentsWithSubmissions = apiHandler(async (req, res, 
 
 });
 
+export const getAssignmentOverview = async (req, res) => {
+  const { teacherId } = req.params;
+
+  if (!teacherId) {
+    return ResponseHandler.badRequest(res, "Teacher ID is required.");
+  }
+
+  try {
+    const now = new Date();
+
+    const total = await Assignment.countDocuments({ teacherId });
+    const pending = await Assignment.countDocuments({ teacherId, status: "PUBLISHED" });
+    const completed = await Assignment.countDocuments({ teacherId, status: "CLOSED" });
+    const overdue = await Assignment.countDocuments({
+      teacherId,
+      status: { $nin: ["CLOSED", "DRAFT"] },
+      dueDate: { $lt: now }
+    });
+
+    return ResponseHandler.success(res, 200, "Assignment overview fetched", {
+      total,
+      pending,
+      completed,
+      overdue
+    });
+
+  } catch (err) {
+    console.error("Overview Error:", err);
+    return ResponseHandler.error(res, 500, "Failed to fetch assignment overview");
+  }
+};

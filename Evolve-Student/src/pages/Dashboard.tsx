@@ -23,7 +23,6 @@ const Dashboard: React.FC = () => {
           <RecentFeedback />
         </div>
         
-        <PerformanceGraph />
         
         <div className="pt-2">
           <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>

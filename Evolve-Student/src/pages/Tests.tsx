@@ -66,7 +66,8 @@ const TestCard = ({
   const now = new Date();
   const scheduledAt = new Date(test.scheduledAt);
   const expiresAt = new Date(test.expiresAt);
-  
+
+
   const isTestAvailable = status === 'ongoing' || 
     (status === 'upcoming' && now >= scheduledAt && now <= expiresAt);
 
@@ -80,6 +81,8 @@ const TestCard = ({
 
   // Consider auto-submitted tests as terminated
   const effectivelyTerminated = isTerminated || isAutoSubmitted;
+    
+  const hasAttempted = isSubmitted || effectivelyTerminated;
 
   const startTest = () => {
     if (isTestAvailable && !isSubmitted && !effectivelyTerminated) {
@@ -98,7 +101,7 @@ const TestCard = ({
   };
 
   // Determine if we should show results button
-  const showResultsButton = status === 'expired' || isSubmitted || effectivelyTerminated;
+  const showResultsButton = hasAttempted;
 
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -178,7 +181,7 @@ const TestCard = ({
           
           {showResultsButton && (
             <Button variant="outline" className="flex-1" asChild>
-              <Link to={`/tests/${test._id}/result`}>View Result</Link>
+              <Link to={`/tests/${test._id}/${test.type}/result`}>View Result</Link>
             </Button>
           )}
         </div>
