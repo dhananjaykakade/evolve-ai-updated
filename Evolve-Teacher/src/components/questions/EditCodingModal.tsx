@@ -43,6 +43,13 @@ export const EditCodingModal: React.FC<EditCodingModalProps> = ({
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
+
+  const processedTestCases = testCases.map(tc => ({
+    input: tc.input.replace(/\\n/g, '\n'),  // Convert \n to actual newlines
+    expectedOutput: tc.expectedOutput.replace(/\\n/g, '\n')
+  }));
+
+
     setLoading(true);
     try {
       const updatedQuestion = {
@@ -52,7 +59,7 @@ export const EditCodingModal: React.FC<EditCodingModalProps> = ({
         difficulty,
         language,
         starterCode,
-        testCases,
+        testCases: processedTestCases,
         marks,
       };
 
@@ -189,8 +196,9 @@ export const EditCodingModal: React.FC<EditCodingModalProps> = ({
                     onChange={(e) => {
                       const newCases = [...testCases];
                       newCases[idx].input = e.target.value;
+                      
                       setTestCases(newCases);
-                    }}
+                    }} 
                     placeholder="Input (e.g., [1,2,3], 5, 'test')"
                   />
                   <Input

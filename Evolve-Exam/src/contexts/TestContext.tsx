@@ -481,7 +481,7 @@ if (user && testDetails) {
   status: 'answered'
         });
         // show confirm message in toast from backend
-        toast.success(response.data.message);
+        // toast.success(response.data.message);
       } catch (error) {
         console.error("Failed to save answer to backend:", error);
         toast.error("Failed to sync answer");
