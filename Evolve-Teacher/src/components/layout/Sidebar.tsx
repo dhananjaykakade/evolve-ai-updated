@@ -15,6 +15,9 @@ import {
   HelpCircle,
   X,
   BrainCircuit,
+  TestTube,
+  Activity ,
+  FileUser
 } from "lucide-react";
 
 interface SidebarProps {
@@ -25,7 +28,9 @@ interface SidebarProps {
 const navItems = [
   { name: "Dashboard", path: "/", icon: LayoutDashboard },
   { name: "Assignments", path: "/assignments", icon: BookOpen },
-  { name: "tests", path: "/tests", icon: BookOpen },
+  { name: "tests", path: "/tests", icon: TestTube },
+  { name: "tests monitoring", path: "/test-monitoring", icon: Activity },
+  { name: "results", path: "/student-results", icon: FileUser },
   { name: "Students", path: "/students", icon: Users },
   { name: "AI Tools", path: "/ai-tools", icon: BrainCircuit },
   { name: "Chat Support", path: "/chat", icon: MessageCircle },
@@ -33,7 +38,6 @@ const navItems = [
   { name: "Settings", path: "/settings", icon: Settings },
   { name: "Help", path: "/help", icon: HelpCircle },
   { name: "Logout", path: "/login", icon: X },
-  { name: "results", path: "/student-results", icon: MessageCircle },
 
 ];
 
@@ -81,10 +85,7 @@ export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
         {/* Logo */}
         <div className="flex h-16 items-center border-b border-sidebar-border/10 px-6">
           <Link to="/" className="flex items-center gap-2 text-xl font-bold">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-sidebar">
-              <BookOpen className="h-5 w-5" />
-            </div>
-            <span>LearnLane</span>
+            <span>Teacher Dashboard</span>
           </Link>
         </div>
 

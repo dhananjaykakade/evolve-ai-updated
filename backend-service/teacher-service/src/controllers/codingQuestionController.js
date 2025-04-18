@@ -23,6 +23,7 @@ export const addCodingQuestion = apiHandler(async (req, res) => {
         return ResponseHandler.badRequest(res, 'This test is not a coding test.');
       }
 
+
   
     // Create new coding question
     const newCodingQuestion = await CodingQuestion.create({

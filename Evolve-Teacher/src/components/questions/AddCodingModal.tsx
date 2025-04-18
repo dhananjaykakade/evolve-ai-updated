@@ -165,8 +165,6 @@ export const AddCodingModal = ({ testId, onSuccess }: { testId: string, onSucces
                   onChange={(e) => {
                     const newCases = [...testCases];
                     newCases[idx].input = e.target.value;
-                    // refine \n to actual newlines
-                    newCases[idx].input = newCases[idx].input.replace(/\\n/g, '\n');
                     setTestCases(newCases);
                   }} 
                   placeholder="Input (e.g., [1,2,3], 5, 'test')" 
