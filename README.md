@@ -85,6 +85,16 @@ evolve-ai/
 └── tsconfig.json                 # TypeScript Configuration
 ```
 
+
+## 🧪 Test Demos
+
+### 📋 MCQ Test Demo
+[Watch MCQ Test Demo](./mcq-test-demo.mp4)
+
+### 💻 Coding Test Demo
+[Watch Coding Test Demo](./coding-test-demo.mp4)
+
+
 ## Installation Guide
 
 ### Prerequisites
