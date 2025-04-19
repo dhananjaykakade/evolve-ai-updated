@@ -56,6 +56,20 @@ EvolveAI is a comprehensive AI-powered assessment platform designed for educatio
 | Asset Management  | Cloudinary                              |
 | Authentication    | JWT with Redis-based OTP                |
 
+
+
+## 🎥 Live Test Demos
+
+### 📋 MCQ Test Demo
+[![MCQ Test Demo](https://via.placeholder.com/800x450.png?text=MCQ+Test+Demo+▶)](https://res.cloudinary.com/dj6mlh67u/video/upload/v1745090299/mcq-test-demo_phxzj8.mp4)
+
+---
+
+### 💻 Coding Test Demo
+[![Coding Test Demo](https://via.placeholder.com/800x450.png?text=Coding+Test+Demo+▶)](https://res.cloudinary.com/dj6mlh67u/video/upload/v1745090312/coding-test-demo_f6qc42.mp4)
+
+
+
 ## Project Structure
 
 ```
