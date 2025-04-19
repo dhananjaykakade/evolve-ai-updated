@@ -57,6 +57,11 @@ const Footer = () => {
           <p className="text-gray-500">
             &copy; {new Date().getFullYear()} EvolveAI. All rights reserved.
           </p>
+          <p className="text-gray-500 mt-2">
+            Developed by <a href="https://github.com/dhananjaykakade" className="text-evolve-700">dhananjay kakade</a>
+            <span className="mx-1">|</span> 
+            <a href="#" className="text-evolve-700">Siddhi bodake</a>
+          </p>
         </div>
       </div>
     </footer>
