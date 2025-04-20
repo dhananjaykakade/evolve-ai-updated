@@ -56,7 +56,7 @@ EvolveAI is a comprehensive AI-powered assessment platform designed for educatio
 | Asset Management  | Cloudinary                              |
 | Authentication    | JWT with Redis-based OTP                |
 
-
+---
 
 ## 🎥 Live Test Demos
 
@@ -104,7 +104,7 @@ evolve-ai/
 ## Installation Guide
 
 ### Prerequisites
-- Node.js (v16+)
+- Node.js (v18+)
 - Docker and Docker Compose
 - pnpm package manager
 - Git
@@ -160,7 +160,7 @@ evolve-ai/
 
 5. **Initialize Database**
    ```bash
-   cd services/auth-service
+   cd backend-service/auth-service
    pnpm prisma migrate dev --name init
    pnpm prisma generate
    pnpm dev
