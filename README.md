@@ -78,7 +78,7 @@ evolve-ai/
 ├── Evolve-main/                  # Administrative Dashboard
 ├── Evolve-student/               # Student Interface
 ├── Evolve-teacher/               # Faculty Interface
-├── services/                     # Backend Microservices
+├── bavkend-service/                     # Backend Microservices
 │   ├── auth-service/             # Authentication & Authorization (PostgreSQL/Prisma)
 │   │   ├── prisma/
 │   │   │   ├── schema.prisma
@@ -113,7 +113,7 @@ evolve-ai/
 
 1. **Clone Repository**
    ```bash
-   git clone https://github.com/your-organization/evolve-ai
+   git clone https://github.com/dhananjaykakade/evolve-ai-updated
    cd evolve-ai
    ```
 
