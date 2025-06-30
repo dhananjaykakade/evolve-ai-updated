@@ -56,6 +56,20 @@ EvolveAI is a comprehensive AI-powered assessment platform designed for educatio
 | Asset Management  | Cloudinary                              |
 | Authentication    | JWT with Redis-based OTP                |
 
+---
+
+## 🎥 Live Test Demos
+
+### 📋 MCQ Test Demo
+[![MCQ Test Demo](https://via.placeholder.com/800x450.png?text=MCQ+Test+Demo+▶)](https://res.cloudinary.com/dj6mlh67u/video/upload/v1745090299/mcq-test-demo_phxzj8.mp4)
+
+---
+
+### 💻 Coding Test Demo
+[![Coding Test Demo](https://via.placeholder.com/800x450.png?text=Coding+Test+Demo+▶)](https://res.cloudinary.com/dj6mlh67u/video/upload/v1745090312/coding-test-demo_f6qc42.mp4)
+
+
+
 ## Project Structure
 
 ```
@@ -64,7 +78,7 @@ evolve-ai/
 ├── Evolve-main/                  # Administrative Dashboard
 ├── Evolve-student/               # Student Interface
 ├── Evolve-teacher/               # Faculty Interface
-├── services/                     # Backend Microservices
+├── bavkend-service/                     # Backend Microservices
 │   ├── auth-service/             # Authentication & Authorization (PostgreSQL/Prisma)
 │   │   ├── prisma/
 │   │   │   ├── schema.prisma
@@ -85,10 +99,12 @@ evolve-ai/
 └── tsconfig.json                 # TypeScript Configuration
 ```
 
+
+
 ## Installation Guide
 
 ### Prerequisites
-- Node.js (v16+)
+- Node.js (v18+)
 - Docker and Docker Compose
 - pnpm package manager
 - Git
@@ -97,7 +113,7 @@ evolve-ai/
 
 1. **Clone Repository**
    ```bash
-   git clone https://github.com/your-organization/evolve-ai
+   git clone https://github.com/dhananjaykakade/evolve-ai-updated
    cd evolve-ai
    ```
 
@@ -144,7 +160,7 @@ evolve-ai/
 
 5. **Initialize Database**
    ```bash
-   cd services/auth-service
+   cd backend-service/auth-service
    pnpm prisma migrate dev --name init
    pnpm prisma generate
    pnpm dev
