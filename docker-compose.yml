@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # Database
   postgres:
     image: postgres:15
     container_name: evolveai_postgres
@@ -10,9 +11,19 @@ services:
       POSTGRES_PASSWORD: evolveai_password
       POSTGRES_DB: evolveai_auth
     ports:
-      - "5432:5432"
+      - "6543:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - evolve-network
+  mongodb:
+    image: mongo:6.0
+    container_name: evolveai_mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
     networks:
       - evolve-network
 
@@ -25,8 +36,122 @@ services:
     networks:
       - evolve-network
 
+  # Backend Microservices
+  auth-service:
+    build:
+        context: .
+        dockerfile: ./backend-service/auth-service/Dockerfile
+    container_name: evolveai_auth
+    ports:
+      - "8001:8001"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASS=${EMAIL_PASS}
+      - PORT=8001
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - evolve-network
+
+  teacher-service:
+    build:
+        context: .
+        dockerfile: ./backend-service/teacher-service/Dockerfile
+    container_name: evolveai_teacher
+    ports:
+      - "8005:8005"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASS=${EMAIL_PASS}
+      - PORT=8005
+      - MONGO_URI=${MONGO_URI}
+    networks:
+      - evolve-network
+    depends_on:
+      - mongodb
+
+  student-service:
+    build:
+        context: .
+        dockerfile: ./backend-service/student-service/Dockerfile
+    container_name: evolveai_student
+    ports:
+      - "8090:8090"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASS=${EMAIL_PASS}
+      - PORT=8090
+      - MONGO_URI=${MONGO_URI}
+    depends_on:
+      - mongodb
+    networks:
+      - evolve-network
+
+  # Frontend Apps (built and served by nginx)
+  evolve-main:
+    build: ./Evolve-main
+    container_name: evolveai_main_ui
+    ports:
+      - "3000:80"  # Admin
+    networks:
+      - evolve-network
+    volumes:
+    - ./frontend-dist/main:/usr/share/nginx/html/main
+
+  evolve-teacher:
+    build: ./Evolve-teacher
+    container_name: evolveai_teacher_ui
+    networks:
+      - evolve-network
+    volumes:
+    - ./frontend-dist/teacher:/usr/share/nginx/html/teacher
+
+  evolve-student:
+    build: ./Evolve-student
+    container_name: evolveai_student_ui
+    networks:
+      - evolve-network
+    volumes:
+    - ./frontend-dist/student:/usr/share/nginx/html/student
+
+  evolve-exam:
+    build: ./Evolve-Exam
+    container_name: evolveai_exam_ui
+    networks:
+      - evolve-network
+    volumes:
+    - ./frontend-dist/exam:/usr/share/nginx/html/exam
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:latest
+    container_name: evolveai_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend-dist/main:/usr/share/nginx/html/main
+      - ./frontend-dist/teacher:/usr/share/nginx/html/teacher
+      - ./frontend-dist/student:/usr/share/nginx/html/student
+      - ./frontend-dist/exam:/usr/share/nginx/html/exam
+    depends_on:
+      - evolve-main
+      - evolve-teacher
+      - evolve-student
+      - evolve-exam
+    networks:
+      - evolve-network
+
 networks:
   evolve-network:
 
 volumes:
   postgres_data:
+  mongodb_data:

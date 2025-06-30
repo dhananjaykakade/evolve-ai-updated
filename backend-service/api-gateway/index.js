@@ -87,14 +87,6 @@ const services = {
     target: process.env.STUDENT_SERVICE_URL || "http://localhost:8090",
     pathRewrite: { "^/student": "" },
   },
-  grading: {
-    target: process.env.GRADING_SERVICE_URL || "http://localhost:5003",
-    pathRewrite: { "^/grading": "" },
-  },
-  notification: {
-    target: process.env.NOTIFICATION_SERVICE_URL || "http://localhost:8003",
-    pathRewrite: { "^/notification": "" },
-  },
   exam: {
     target: process.env.NOTIFICATION_SERVICE_URL || "http://localhost:9005",
     pathRewrite: { "^/exam": "" },

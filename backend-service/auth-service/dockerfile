@@ -1,0 +1,22 @@
+FROM node:18-alpine
+
+# Set working dir to monorepo root
+WORKDIR /app
+
+# Enable pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# Copy only auth-service and shared configs
+COPY backend-service/auth-service ./backend-service/auth-service
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+# Install only auth-service dependencies
+WORKDIR /app/backend-service/auth-service
+RUN pnpm install
+
+# Generate Prisma client
+RUN pnpm exec prisma generate
+
+# Set port and start
+EXPOSE 8001
+CMD ["node", "index.js"]

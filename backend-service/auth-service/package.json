@@ -6,7 +6,10 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon index.js",
-    "seed": "node prisma/seed.js"
+    "seed": "node prisma/seed.js",
+        "start": "node index.js",
+    "prisma": "prisma"
+
   },
   "prisma": {
     "seed": "node prisma/seed.js"

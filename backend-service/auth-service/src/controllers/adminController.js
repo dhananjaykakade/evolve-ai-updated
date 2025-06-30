@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { PrismaClient } from "@prisma/client";
-import redis from "../utils/redisClient.js";
+// import redis from "../utils/redisClient.js";
 import emailQueue from "../utils/emailQueue.js";
 import ResponseHandler from "../utils/CustomResponse.js";
 import apiHandler from "../utils/ApiHandler.js";
