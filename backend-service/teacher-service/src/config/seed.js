@@ -3,7 +3,12 @@ import dotenv from "dotenv";
 import Assignment from "../models/assignmentModel.js"; // Adjust if needed
 
 dotenv.config();
-const MONGO_URI="mongodb+srv://nodejs:DYgiTCC37m61MrUz@cluster0.hsqy5h8.mongodb.net/evolveai_teacher"
+const { MONGO_URI } = process.env;
+if (!MONGO_URI) {
+  console.error("MONGO_URI is not defined in .env file");
+  process.exit(1);
+}
+
 
 // ✅ Sample Assignments
 const assignments = [

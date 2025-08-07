@@ -9,7 +9,7 @@
     "backend-service/*"
   ],
   "scripts": {
-
+    "seed": "pnpm --filter teacher-service seed && pnpm --filter auth-service seed ",
     "dev": "concurrently \"pnpm --filter api-gateway dev\" \"pnpm --filter auth-service dev\" \"pnpm --filter teacher-service dev\" \"pnpm --filter student-service dev\" \"npm --prefix Evolve-Student run dev\" \"npm --prefix Evolve-main run dev\" \"npm --prefix Evolve-Teacher run dev\" \"npm --prefix Evolve-Exam run dev\""
   },
   "keywords": [],
