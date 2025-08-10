@@ -73,11 +73,12 @@ const AssignmentList: React.FC = () => {
     const fetchAssignments = async () => {
       try {
         const response = await axios.get(
-          `http://localhost:9001/teacher/assignments/get/students?studentId=${user.id}`
+          `${import.meta.env.VITE_API_URL}/teacher/assignments/get/students?studentId=${user.id}`
         );
         
         if (response.data.success) {
           // Sort assignments by due date in descending order (newest first)
+          console.log("Fetched Assignments:", response.data.data.assignments);
           const sortedAssignments = response.data.data.assignments.sort((a: Assignment, b: Assignment) => 
             new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime()
           );

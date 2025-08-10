@@ -10,12 +10,18 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 
+// get the details via env file
+const CLOUDINARY_UPLOAD_PRESET =  "tbyp3bnh"; // your preset name
+const CLOUDINARY_CLOUD_NAME =  "delnxjp38"; // your cloud name
+
 interface CreateAssignmentModalProps {
   onSuccess?: () => void;
 }
 
 export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({ onSuccess }) => {
   const [open, setOpen] = useState(false);
+  const [fileUrl, setFileUrl] = useState("");
+  const [isFileUploading, setIsFileUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
@@ -30,7 +36,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({ on
   const [file, setFile] = useState<File | null>(null);
   const { user } = useAuth();
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const selectedFile = e.target.files[0];
       // Validate file type and size
@@ -43,9 +49,30 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({ on
         toast.error("File size should be less than 5MB");
         return;
       }
-      setFile(selectedFile);
-      toast.success("File selected successfully");
+          setIsFileUploading(true);
+    toast.info("Uploading file...");
+try {
+      const cloudData = new FormData();
+      cloudData.append("file", selectedFile);
+      cloudData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+
+      const uploadRes = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`,
+        { method: "POST", body: cloudData }
+      );
+
+      const uploadResult = await uploadRes.json();
+      if (!uploadRes.ok) throw new Error(uploadResult.error?.message || "Upload failed");
+
+      setFileUrl(uploadResult.secure_url);
+      toast.success("File uploaded successfully!");
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "File upload failed");
+    } finally {
+      setIsFileUploading(false);
     }
+  }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -62,29 +89,31 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({ on
       return;
     }
 
-    const data = new FormData();
-    data.append("title", formData.title);
-    data.append("description", formData.description);
-    data.append("dueDate", new Date(formData.dueDate).toISOString());
-    data.append("course", formData.course);
-    data.append("useAI", String(formData.useAI));
-    data.append("submissionType", formData.submissionType);
-    data.append("maxMarks", String(formData.maxMarks));
-    data.append("status", "DRAFT"); // Default to draft
-
-    if (user?.id) {
-      data.append("teacherId", user.id);
-    }
-
-    if (file) {
-      data.append("file", file);
-    }
+    const data = {
+      title: formData.title,
+      description: formData.description,
+      dueDate: new Date(formData.dueDate).toISOString(),
+      course: formData.course,
+      useAI: formData.useAI,
+      submissionType: formData.submissionType,
+      maxMarks: formData.maxMarks,
+      status: "DRAFT",
+      teacherId: user?.id || "",
+      materialsUrl: fileUrl // ✅ cloudinary URL
+    };
 
     setIsLoading(true);
     try {
-      const response = await fetch("http://localhost:9001/teacher/assignments", {
+      console.log("Creating assignment...");
+      console.log("Form Data:", data);
+      // make this link production ready from env dynamically in vitejs
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/teacher/assignments`, {
         method: "POST",
-        body: data,
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data),
+
       });
 
       const result = await response.json();
@@ -222,27 +251,48 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({ on
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="materials">Materials (Optional)</Label>
-            <div className="flex items-center gap-2">
-              <input 
-                type="file" 
-                id="materials" 
-                className="hidden" 
-                onChange={handleFileChange}
-                accept=".pdf,.doc,.docx"
-              />
-              <Button 
-                type="button" 
-                variant="outline" 
-                className="w-full" 
-                onClick={() => document.getElementById("materials")?.click()}
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                {file ? file.name : "Upload Materials"}
-              </Button>
-            </div>
-          </div>
+<div className="space-y-2">
+  <Label htmlFor="materials">Materials (Optional)</Label>
+
+  {/* If fileUrl exists, show uploaded message */}
+  {fileUrl && <p className="text-sm text-green-600">Uploaded successfully </p>}
+
+  <div className="flex items-center gap-2">
+    <input
+      type="file"
+      id="materials"
+      className="hidden"
+      onChange={handleFileChange}
+      accept=".pdf,.doc,.docx"
+    />
+
+    <Button
+      type="button"
+      variant="outline"
+      className={`w-full ${
+        fileUrl
+          ? "border-green-500 text-green-600 hover:bg-green-50"
+          : "border-gray-300"
+      }`}
+      onClick={() => document.getElementById("materials")?.click()}
+      disabled={isFileUploading}
+    >
+      {isFileUploading ? (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Uploading...
+        </>
+      ) : (
+        <>
+          <Upload className="mr-2 h-4 w-4" />
+          {fileUrl ? "File Uploaded" : "Upload Materials"}
+        </>
+      )}
+    </Button>
+  </div>
+</div>
+
+
 
           <div className="rounded-lg bg-accent p-4">
             <div className="flex items-center justify-between">

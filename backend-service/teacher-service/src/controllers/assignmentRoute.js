@@ -7,12 +7,8 @@ import axios from "axios"
  * 🟢 Create a new assignment
  */
 export const createAssignment = apiHandler(async (req, res) => {
-    const { title, description, dueDate, teacherId, course, useAI, submissionType, status } = req.body;
-    
-    // Check if a file is uploaded
-    const materials = req.file ? req.file.path : null; // Get Cloudinary URL
-    
-    if (!title || !description || !dueDate || !teacherId || !course) {
+    const { title, description, dueDate, teacherId, course, useAI, submissionType, status, materialsUrl } = req.body;
+    if (!title || !description || !dueDate || !teacherId || !course ) {
       return ResponseHandler.badRequest(res, "Please provide all required fields.");
     }
   
@@ -24,8 +20,8 @@ export const createAssignment = apiHandler(async (req, res) => {
       course,
       useAI: useAI || false,
       submissionType: submissionType || "file",
-      status: "PUBLISHED",
-      materials, // Store uploaded file URL
+      status: status || "DRAFT", // Default status is DRAFT
+      materials: materialsUrl || "" , // Store uploaded file URL
     });
   
     return ResponseHandler.success(res, 201, "Assignment created successfully.", newAssignment);
@@ -200,3 +196,25 @@ export const getAssignmentOverview = async (req, res) => {
     return ResponseHandler.error(res, 500, "Failed to fetch assignment overview");
   }
 };
+
+export const changeAssignmentStatus = apiHandler(async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  if (!id || !status) {
+    return ResponseHandler.badRequest(res, "Assignment ID and status are required.");
+  }
+
+
+    const assignment = await Assignment.findById(id);
+    if (!assignment) {
+      return ResponseHandler.notFound(res, "Assignment not found.");
+    }
+
+    assignment.status = status;
+    await assignment.save();
+
+    return ResponseHandler.success(res, 200, "Assignment status updated successfully.", {
+      assignment
+    });
+});
