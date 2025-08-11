@@ -53,7 +53,7 @@ const Assignments = () => {
     setLoading(true);
     try {
       const response = await axios.get(
-        `http://localhost:9001/teacher/assignments/${user.id}/submissions`
+        `${import.meta.env.VITE_API_URL}/teacher/assignments/${user.id}/submissions`
       );
       
       if (response.data.success) {
@@ -78,7 +78,7 @@ const Assignments = () => {
     if (!confirm("Are you sure you want to delete this assignment?")) return;
     try {
       const response = await axios.delete(
-        `http://localhost:9001/teacher/assignments/${id}`
+        `${import.meta.env.VITE_API_URL}/teacher/assignments/${id}`
       );
 
       if (response.data.success) {
@@ -97,7 +97,7 @@ const Assignments = () => {
     const newStatus = currentStatus === "PUBLISHED" ? "DRAFT" : "PUBLISHED";
     try {
       const response = await axios.patch(
-        `http://localhost:9001/teacher/assignments/${id}/status`,
+        `${import.meta.env.VITE_API_URL}/teacher/assignments/${id}/status`,
         { status: newStatus }
       );
 
@@ -204,7 +204,7 @@ const Assignments = () => {
   }))}
   onDelete={() => handleDelete(assignment._id)}
   // onEdit={() => handleEdit(assignment._id)}
-  // onPublishToggle={() => handlePublishToggle(assignment._id)}
+  onPublishToggle={() => handlePublishToggle(assignment._id, assignment.status)}
   onFeedbackSubmit={async (submissionId, feedback) => {
     await axios.post(`/assignments/${assignment._id}/feedback`, {
       submissionId,

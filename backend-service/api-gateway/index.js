@@ -68,10 +68,10 @@ const startDocker = () => {
   }
 };
 
-// Start Docker if needed
-if (NODE_ENV === "development") {
-  startDocker();
-}
+// // Start Docker if needed
+// if (NODE_ENV === "development") {
+//   startDocker();
+// }
 
 // Service configuration
 const services = {
@@ -87,9 +87,9 @@ const services = {
     target: process.env.STUDENT_SERVICE_URL || "http://localhost:8090",
     pathRewrite: { "^/student": "" },
   },
-  exam: {
-    target: process.env.NOTIFICATION_SERVICE_URL || "http://localhost:9005",
-    pathRewrite: { "^/exam": "" },
+  Notification: {
+    target: process.env.NOTIFICATION_SERVICE_URL || "http://localhost:8003",
+    pathRewrite: { "^/notification": "" },
   },
 };
 

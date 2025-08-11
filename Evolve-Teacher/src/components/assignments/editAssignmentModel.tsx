@@ -18,7 +18,7 @@ export const EditAssignmentModal = ({ assignment, onClose, onAssignmentUpdated }
     setLoading(true);
 
     try {
-      const response = await fetch(`http://localhost:9000/teacher/assignments/${assignment._id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/teacher/assignments/${assignment._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title, description, dueDate, status }),

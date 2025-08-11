@@ -3,34 +3,33 @@ import ResponseHandler from "../utils/CustomResponse.js";
 import axios from "axios";
 import Submission from "../models/submission.js";
 import cloudinary from "../config/cloudinary.js";
-import submission from "../models/submission.js";
+import assignments from "../models/assignmentModel.js"
+
+const { AUTH_SERVICE_URL } = process.env;
+
 
 export const submitAssignment = apiHandler(async (req, res) => {
   const { assignmentId, studentId, content } = req.body;
   let fileUrl = "";
-  
-  console.log("Request Body:", req.body);
-  console.log("File:", req.file);
+  if (!assignmentId || !studentId || !content) {
+    return ResponseHandler.badRequest(res, "Assignment ID, Student ID, and content are required");
+  }
 
   try {
     // ✅ Step 1: Validate student & assignment
-    const [studentResponse, assignmentResponse] = await Promise.allSettled([
-      axios.get(`http://localhost:9001/auth/students/${studentId}`),
-      axios.get(`http://localhost:9001/teacher/assignments/${assignmentId}`)
+    const [studentResponse] = await Promise.allSettled([
+      axios.get(`${AUTH_SERVICE_URL}/students/${studentId}`),
     ]);
+    const assignment = await assignments.findById(assignmentId);
 
-    console.log("Student API Response:", studentResponse);
-    console.log("Assignment API Response:", assignmentResponse);
+    if (!assignment) {
+      return ResponseHandler.notFound(res, "Assignment not found");
+    }
+
 
     if (studentResponse.status === "rejected" || !studentResponse.value?.data?.success) {
       return ResponseHandler.notFound(res, "Student not found");
     }
-
-    if (assignmentResponse.status === "rejected" || !assignmentResponse.value?.data?.success) {
-      return ResponseHandler.notFound(res, "Assignment not found");
-    }
-
-    const assignment = assignmentResponse.value.data.data;
 
     // ✅ Step 2: Check assignment deadline
     const currentDate = new Date();
@@ -94,8 +93,6 @@ export const submitAssignment = apiHandler(async (req, res) => {
 
 
 
-
-
 export const editSubmission = apiHandler(async (req, res) => {
     const { submissionId } = req.params;
     const { content, submissionType } = req.body;
@@ -108,21 +105,18 @@ export const editSubmission = apiHandler(async (req, res) => {
     }
   
     // ✅ Step 2: Check if the submission is past the deadline
-    const assignmentResponse = await axios.get(
-      `http://localhost:8005/teacher/assignments/${submission.assignmentId}`
-    );
-    if (!assignmentResponse.data.success) {
+    const assignment = await assignments.findById(submission.assignmentId);
+    if (!assignment) {
       return ResponseHandler.notFound(res, "Assignment not found");
     }
-  
-    const { dueDate } = assignmentResponse.data.data;
+
+    const { dueDate } = assignment;
     if (new Date() > new Date(dueDate)) {
       return ResponseHandler.badRequest(res, "Cannot edit submission after the deadline");
     }
   
     // ✅ Step 3: Handle File Upload (if provided)
     if (req.file) {
-      console.log("Uploading file to Cloudinary...");
       const result = await cloudinary.uploader.upload(req.file.path, {
         folder: "submissions",
       });
@@ -145,8 +139,6 @@ export const editSubmission = apiHandler(async (req, res) => {
 
 
 
-
-
   export const deleteSubmission = apiHandler(async (req, res) => {
     const { submissionId } = req.params;
   
@@ -157,14 +149,12 @@ export const editSubmission = apiHandler(async (req, res) => {
     }
   
     // ✅ Step 2: Check if the submission is past the deadline
-    const assignmentResponse = await axios.get(
-      `http://localhost:8005/teacher/assignments/${submission.assignmentId}`
-    );
-    if (!assignmentResponse.data.success) {
+    const assignment = await assignments.findById(submission.assignmentId);
+    if (!assignment) {
       return ResponseHandler.notFound(res, "Assignment not found");
     }
-  
-    const { dueDate } = assignmentResponse.data.data;
+    const { dueDate } = assignment;
+
     if (new Date() > new Date(dueDate)) {
       return ResponseHandler.badRequest(res, "Cannot delete submission after the deadline");
     }
@@ -174,8 +164,6 @@ export const editSubmission = apiHandler(async (req, res) => {
   
     return ResponseHandler.success(res, 200, "Submission deleted successfully");
   });
-
-  
 
 
 
@@ -210,11 +198,9 @@ export const getSubmissionsForSingleStudent = apiHandler(async (req, res) => {
     });
 });
 
-export const getAllSubmissions = apiHandler(async (req, res) =>{
-  const Submission = await submission.find()
-  console.log(Submission)
-  ResponseHandler.success(res, 200, "All submissions fetched successfully", {Submission
-  })
+export const getAllSubmissions = apiHandler(async (req, res) => {
+  const submissions = await Submission.find();
+  return ResponseHandler.success(res, 200, "All submissions fetched successfully", { submissions });
 });
 
 
@@ -230,12 +216,14 @@ export const createFeedbackByTeacherToSubmission = apiHandler(async (req, res) =
 })
 
 
-// creaete route to find student name by 
-
 export const getStudentNameById = apiHandler(async (req, res) => {
   const { studentId } = req.params;
-  const studentResponse = await axios.get(`http://localhost:9001/auth/students/${studentId}`);
-  
+  if (!studentId) {
+    return ResponseHandler.badRequest(res, "Student ID is required");
+  }
+  // Fetch student details from the auth service
+  const studentResponse = await axios.get(`${AUTH_SERVICE_URL}/students/${studentId}`);
+
   if (!studentResponse.data.success) {
     return ResponseHandler.notFound(res, "Student not found");
   }
@@ -251,13 +239,13 @@ export const getSubmissionsForSingleAssignmentBystudent = apiHandler(async (req,
   const { assignmentId,studentId } = req.params;
 // share assignmnet file with assignment 
 
-  const assignmentResponse = await axios.get(`http://localhost:9001/teacher/assignments/${assignmentId}`);
-  if (!assignmentResponse.data.success) {
+  if (!assignmentId || !studentId) {
+    return ResponseHandler.badRequest(res, "Assignment ID and Student ID are required");
+  }
+  const assignment = await assignments.findById(assignmentId);
+  if (!assignment) {
     return ResponseHandler.notFound(res, "Assignment not found");
   }
-  const assignment = assignmentResponse.data.data;
-console.log(assignment)
-
 
   const submissions = await Submission.find({ assignmentId, studentId });
 
