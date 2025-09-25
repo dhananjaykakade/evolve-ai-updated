@@ -115,8 +115,6 @@ export const getAssignmentsWithSubmissions = apiHandler(async (req, res) => {
 // create route with get all the assignments with current student submmisions
 
 export const getStudentAssignmentsWithSubmissions = apiHandler(async (req, res, next) => {
-  
-
 
 
     const { studentId } = req.query;
@@ -135,12 +133,12 @@ export const getStudentAssignmentsWithSubmissions = apiHandler(async (req, res, 
     let submissions = [];
 
       // Fetch Student's Submissions from Student Service
-      const submissionsResponse = await axios.get(`http://localhost:9001/student/submissions/all/assignments`, {
+
+      const submissionsResponse = await axios.get(`${process.env.STUDENT_SERVICE_URL}/submissions/all/assignments`, {
         params: { studentId, assignmentIds: JSON.stringify(assignmentIds) }, // Ensure array is serialized
         timeout: 10000, // Set timeout to avoid long waits
       });
-
-      submissions = submissionsResponse.data.data.Submission || [];
+      submissions = submissionsResponse.data.data.submissions || [];
       // console.log("Student submissions:", submissions);
 
 

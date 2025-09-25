@@ -11,8 +11,9 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 
 // get the details via env file
-const CLOUDINARY_UPLOAD_PRESET =  "tbyp3bnh"; // your preset name
-const CLOUDINARY_CLOUD_NAME =  "delnxjp38"; // your cloud name
+
+const CLOUDINARY_UPLOAD_PRESET =  import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
+const CLOUDINARY_CLOUD_NAME =  import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
 
 interface CreateAssignmentModalProps {
   onSuccess?: () => void;

@@ -9,13 +9,13 @@ const { AUTH_SERVICE_URL } = process.env;
 
 
 export const submitAssignment = apiHandler(async (req, res) => {
-  const { assignmentId, studentId, content } = req.body;
-  let fileUrl = "";
-  if (!assignmentId || !studentId || !content) {
-    return ResponseHandler.badRequest(res, "Assignment ID, Student ID, and content are required");
+  const { assignmentId, studentId, content ,fileUrl} = req.body;
+  console.log(req.body)
+
+  if (!assignmentId || !studentId || !fileUrl) {
+    return ResponseHandler.badRequest(res, "Assignment ID, Student ID, and file are required");
   }
 
-  try {
     // ✅ Step 1: Validate student & assignment
     const [studentResponse] = await Promise.allSettled([
       axios.get(`${AUTH_SERVICE_URL}/students/${studentId}`),
@@ -23,6 +23,7 @@ export const submitAssignment = apiHandler(async (req, res) => {
     const assignment = await assignments.findById(assignmentId);
 
     if (!assignment) {
+      console.log("Assignment not found");
       return ResponseHandler.notFound(res, "Assignment not found");
     }
 
@@ -34,7 +35,6 @@ export const submitAssignment = apiHandler(async (req, res) => {
     // ✅ Step 2: Check assignment deadline
     const currentDate = new Date();
     const dueDate = new Date(assignment.dueDate);
-    console.log("Current Date:", currentDate, "Due Date:", dueDate);
 
     if (currentDate > dueDate) {
       return ResponseHandler.badRequest(res, "Assignment deadline has passed.");
@@ -44,51 +44,26 @@ export const submitAssignment = apiHandler(async (req, res) => {
     const existingSubmission = await Submission.findOne({ assignmentId, studentId });
 
     if (existingSubmission) {
-      console.log("Existing submission found. Updating...");
       existingSubmission.isEdited = true;
       existingSubmission.content = content;
+      existingSubmission.submissionType = req.body.submissionType || existingSubmission.submissionType;
+      existingSubmission.fileUrl = fileUrl || existingSubmission.fileUrl;
 
-      if (req.file) {
-        console.log(req.file.path)
-        console.log("Uploading new file to Cloudinary...");
-        try {
-          const result = await cloudinary.uploader.upload(req.file.path, { folder: "submissions" , resource_type: "auto" , timeout: 60000 });
-          existingSubmission.fileUrl = result.secure_url;
-        } catch (cloudinaryError) {
-          console.error("Cloudinary Upload Error:", cloudinaryError);
-          return ResponseHandler.error(res, 500, "File upload failed");
-        }
-      }
 
       await existingSubmission.save();
       return ResponseHandler.success(res, 200, "Assignment updated successfully", { submission: existingSubmission, isEdited: true });
+    
     }
-
-    // ✅ Step 4: Upload file to Cloudinary if exists
-    if (req.file) {
-      console.log("Uploading new file to Cloudinary...");
-      try {
-        const result = await cloudinary.uploader.upload(req.file.path, { folder: "submissions" });
-        fileUrl = result.secure_url;
-      } catch (cloudinaryError) {
-        console.error("Cloudinary Upload Error:", cloudinaryError);
-        return ResponseHandler.error(res, 500, "File upload failed");
-      }
-    }
-
     // ✅ Step 5: Create new submission
     const submission = await Submission.create({
       assignmentId,
       studentId,
-      content,
-      fileUrl,
+      content: content || "",
+      fileUrl: fileUrl || "",
     });
 
     return ResponseHandler.success(res, 201, "Assignment successfully submitted", { submission, isEdited: false });
-  } catch (error) {
-    console.error("Unhandled Error:", error);
-    return ResponseHandler.error(res, 500, "Internal Server Error");
-  }
+
 });
 
 

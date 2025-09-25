@@ -11,6 +11,7 @@ import {
 import axios from 'axios';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { 
   Dialog,
@@ -21,6 +22,10 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
+
+
+const CLOUDINARY_UPLOAD_PRESET =  import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
+const CLOUDINARY_CLOUD_NAME =  import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
 
 interface Feedback {
   strengths?: string[];
@@ -74,6 +79,8 @@ const AssignmentCard: React.FC<AssignmentCardProps> = ({ assignment, onSubmissio
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+    const [fileUrl, setFileUrl] = useState("");
+  const [isFileUploading, setIsFileUploading] = useState(false);
   const {user } = useAuth()
   // Extract relevant data
   const { 
@@ -104,9 +111,9 @@ const AssignmentCard: React.FC<AssignmentCardProps> = ({ assignment, onSubmissio
     const now = new Date();
     const due = new Date(dueDate);
     
-    if (now > due) {
-      return <Badge variant="destructive">Overdue</Badge>;
-    }
+    if (now > due && !studentSubmission) {
+      return <Badge variant="destructive">Not Submitted </Badge>;
+        }
     
     return <Badge variant="secondary">Pending</Badge>;
   };
@@ -115,81 +122,98 @@ const AssignmentCard: React.FC<AssignmentCardProps> = ({ assignment, onSubmissio
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { files } = e.target;
-    if (!files || files.length === 0) {
-      return;
+const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const { files } = e.target;
+  if (!files || files.length === 0) return;
+
+  const file = files[0];
+  const validTypes = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  ];
+
+  if (!validTypes.includes(file.type)) {
+    toast({
+      title: "Invalid file type",
+      description: "Please upload PDF or Word documents only",
+      variant: "destructive"
+    });
+    return;
+  }
+
+  // Upload to Cloudinary
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+
+  let uploadedFileUrl = "";
+
+  try {
+    setIsFileUploading(true);
+    const response = await axios.post(
+      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`,
+      formData
+    );
+
+    if (response.data.secure_url) {
+      uploadedFileUrl = response.data.secure_url; // Use local variable
+      setFileUrl(uploadedFileUrl);
+    } else {
+      throw new Error("No file URL returned from Cloudinary");
     }
-  
-    const file = files[0];
-    
-    // File validation
-    const validTypes = ['application/pdf', 
-                       'application/msword',
-                       'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-    if (!validTypes.includes(file.type)) {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload PDF or Word documents only",
-        variant: "destructive"
-      });
-      return;
-    }
-  
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      toast({
-        title: "File too large",
-        description: "Maximum file size is 5MB",
-        variant: "destructive"
-      });
-      return;
-    }
-  
-    setIsSubmitting(true);
-  
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('assignmentId', assignment._id);
-      formData.append('studentId', user.id);
-  
-      const response = await axios.post(
-        'http://localhost:9001/student/submissions/submit',
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        }
-      );
-  
-      if (response.data.success) {
-        toast({
-          title: "Submission successful",
-          description: "Your assignment has been submitted",
-        });
-        onSubmissionSuccess?.();
-      } else {
-        throw new Error(response.data.message || 'Submission failed');
-      }
-    } catch (error) {
-      console.error('Submission error:', error);
-      toast({
-        title: "Submission failed",
-        description: error.response?.data?.message || error.message,
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(false);
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
+  } catch (error) {
+    console.error("Error uploading file:", error);
+    toast({
+      title: "Upload failed",
+      description: "There was an error uploading your file",
+      variant: "destructive"
+    });
+    return;
+  } finally {
+    setIsFileUploading(false);
+  }
+
+  // Submit to backend
+  setIsSubmitting(true);
+  try {
+  const submitPayload = {
+    fileUrl: uploadedFileUrl,
+    assignmentId: assignment._id,
+    studentId: user.id
   };
 
+    const submitResponse = await axios.post(
+      `${import.meta.env.VITE_API_URL}/student/submissions/submit`,
+      submitPayload,
+          { headers: { 'Content-Type': 'application/json' } }
+    );
+
+    if (submitResponse.data.success) {
+      toast({
+        title: "Submission successful",
+        description: "Your assignment has been submitted",
+      });
+      onSubmissionSuccess?.();
+    } else {
+      throw new Error(submitResponse.data.message || 'Submission failed');
+    }
+  } catch (error) {
+    console.error('Submission error:', error);
+    toast({
+      title: "Submission failed",
+      description: error.response?.data?.message || error.message,
+      variant: "destructive"
+    });
+  } finally {
+    setIsSubmitting(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+};
+  
+
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card className="hover:shadow-md transition-shadow bg-gray-100 ">
       <CardContent className="pt-6 pb-4">
         <div className="flex flex-col gap-3">
           <div className="flex justify-between items-start">
