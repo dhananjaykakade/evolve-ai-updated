@@ -18,6 +18,7 @@ import { BrainCircuit, BookOpen, Users, ArrowRight } from "lucide-react";
 import { AssignmentCard } from "@/components/assignments/AssignmentCard";
 import { useAuth} from "../context/AuthContext.js";
 import { toast } from "sonner";
+import {Link } from "react-router-dom";
 const Index = () => {
   const [loading, setLoading] = useState(true);
     const [assignments, setAssignments] = useState([]);
@@ -32,12 +33,15 @@ const Index = () => {
   const fetchAssignments = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:9001/teacher/assignments/${user?.id}/submissions`);
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/teacher/assignments/${user?.id}/submissions`);
       if (!response.ok) throw new Error("Failed to fetch assignments");
 
       const data = await response.json();
-      setAssignments(data.data.assignments || []);
-      console.log(data.data.assignments)
+      // limit assignments with latest 3 only
+      const latestAssignments = data.data.assignments.slice(-3);
+      setAssignments(latestAssignments);
+      console.log(latestAssignments);
     } catch (error) {
       toast.error("Error fetching assignments");
     } finally {
@@ -203,16 +207,12 @@ const Index = () => {
 
         <div>
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-2xl font-medium">Active Assignments</h2>
-            <Button variant="outline">View All</Button>
+            <h2 className="text-2xl font-medium">Latest Assignments</h2>
+            <Link to="/assignments">
+              <Button variant="outline">View All</Button>
+            </Link>
           </div>
            <Tabs defaultValue="PUBLISHED">
-                    <TabsList>
-                     
-                      <TabsTrigger value="PUBLISHED" onClick={() => setFilter("PUBLISHED")}>Published</TabsTrigger>
-                      <TabsTrigger value="DRAFT" onClick={() => setFilter("DRAFT")}>Draft</TabsTrigger>
-                      <TabsTrigger value="CLOSED" onClick={() => setFilter("CLOSED")}>Closed</TabsTrigger>
-                    </TabsList>
                     <TabsContent value={filter} className="mt-6">
                       {loading ? (
                         <p>Loading assignments...</p>
