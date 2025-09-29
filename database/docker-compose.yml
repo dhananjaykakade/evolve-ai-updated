@@ -1,0 +1,96 @@
+version: "3.9"
+
+# Centralized databases for Evolve AI
+# Usage:
+# 1) Copy .env.example to .env and adjust values
+# 2) Run: docker compose --env-file .env up -d
+# 3) Stop: docker compose down
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: evolve_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - evolve_net
+
+  mongodb:
+    image: mongo:7
+    container_name: evolve_mongodb
+    restart: unless-stopped
+    ports:
+      - "${MONGO_PORT}:27017"
+    volumes:
+      - mongo_data:/data/db
+    command: ["--quiet", "--logpath", "/dev/null"]
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - evolve_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: evolve_redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT}:6379"
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - evolve_net
+
+  # Optional admin UIs (uncomment if needed)
+  # pgadmin:
+  #   image: dpage/pgadmin4:8
+  #   container_name: evolve_pgadmin
+  #   restart: unless-stopped
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+  #     PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+  #   ports:
+  #     - "${PGADMIN_PORT}:80"
+  #   depends_on:
+  #     - postgres
+  #   networks:
+  #     - evolve_net
+
+  # mongo-express:
+  #   image: mongo-express:1
+  #   container_name: evolve_mongo_express
+  #   restart: unless-stopped
+  #   environment:
+  #     ME_CONFIG_MONGODB_URL: mongodb://mongodb:27017
+  #   ports:
+  #     - "${MONGO_EXPRESS_PORT}:8081"
+  #   depends_on:
+  #     - mongodb
+  #   networks:
+  #     - evolve_net
+
+networks:
+  evolve_net:
+    driver: bridge
+
+volumes:
+  pg_data:
+  mongo_data:

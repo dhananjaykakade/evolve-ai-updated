@@ -16,6 +16,11 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - evolve-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
   mongodb:
     image: mongo:6.0
     container_name: evolveai_mongo
@@ -26,6 +31,11 @@ services:
       - mongodb_data:/data/db
     networks:
       - evolve-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.runCommand({ ping: 1 })"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:latest
@@ -35,6 +45,11 @@ services:
       - "6379:6379"
     networks:
       - evolve-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Backend Microservices
   auth-service:
@@ -51,10 +66,17 @@ services:
       - EMAIL_PASS=${EMAIL_PASS}
       - PORT=8001
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - evolve-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   teacher-service:
     build:
@@ -73,7 +95,13 @@ services:
     networks:
       - evolve-network
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8005/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   student-service:
     build:
@@ -90,7 +118,44 @@ services:
       - PORT=8090
       - MONGO_URI=${MONGO_URI}
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
+    networks:
+      - evolve-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./backend-service/api-gateway
+      dockerfile: Dockerfile
+    container_name: evolveai_gateway
+    environment:
+      - NODE_ENV=production
+      - PORT=9001
+      - AUTH_SERVICE_URL=http://auth-service:8001
+      - TEACHER_SERVICE_URL=http://teacher-service:8005
+      - STUDENT_SERVICE_URL=http://student-service:8090
+      - NOTIFICATION_SERVICE_URL=http://notification-service:8003
+      - ALLOWED_ORIGINS=http://evolve.ai,http://teacher.evolve.ai,http://student.evolve.ai,http://exam.evolve.ai
+    ports:
+      - "9001:9001"
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      teacher-service:
+        condition: service_healthy
+      student-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9001/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - evolve-network
 
@@ -106,7 +171,7 @@ services:
     - ./frontend-dist/main:/usr/share/nginx/html/main
 
   evolve-teacher:
-    build: ./Evolve-teacher
+    build: ./Evolve-Teacher
     container_name: evolveai_teacher_ui
     networks:
       - evolve-network
@@ -114,7 +179,7 @@ services:
     - ./frontend-dist/teacher:/usr/share/nginx/html/teacher
 
   evolve-student:
-    build: ./Evolve-student
+    build: ./Evolve-Student
     container_name: evolveai_student_ui
     networks:
       - evolve-network
@@ -142,10 +207,16 @@ services:
       - ./frontend-dist/student:/usr/share/nginx/html/student
       - ./frontend-dist/exam:/usr/share/nginx/html/exam
     depends_on:
-      - evolve-main
-      - evolve-teacher
-      - evolve-student
-      - evolve-exam
+      evolve-main:
+        condition: service_started
+      evolve-teacher:
+        condition: service_started
+      evolve-student:
+        condition: service_started
+      evolve-exam:
+        condition: service_started
+      api-gateway:
+        condition: service_healthy
     networks:
       - evolve-network
 

@@ -30,12 +30,37 @@ initWebSocket(server);
 // Routes
 app.use('/', logsRoute);
 
+// Health and readiness endpoints
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
+app.get('/ready', async (req, res) => {
+  // Optionally verify DB connectivity or WebSocket state
+  res.status(200).json({ ready: true });
+});
+
 // Start server
 const PORT = process.env.PORT || 9020;
-connectDB().then(() => {
-  server.listen(PORT, () => {
-    console.log(`🟢 Notification Service running on http://localhost:${PORT}`);
+connectDB()
+  .then(() => {
+    server.listen(PORT, () => {
+      console.log(`🟢 Notification Service running on http://localhost:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('❌ Error connecting to the database:', err);
   });
-}).catch(err => {
-  console.error('❌ Error connecting to the database:', err);
-});
+
+// Graceful shutdown
+const shutdown = () => {
+  console.log('Shutting down Notification Service...');
+  server.close(() => {
+    console.log('HTTP server closed');
+    process.exit(0);
+  });
+  setTimeout(() => process.exit(1), 10000).unref();
+};
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);

@@ -7,6 +7,7 @@ import teacherRoutes from "./src/routes/teacherRoutes.js";
 import studentRoutes from "./src/routes/studentRoutes.js";
 import ResponseHandler from "./src/utils/CustomResponse.js";
 import { httpLogger } from "./src/utils/logger.js";
+import prisma from "./src/utils/prisma.js";
 dotenv.config();
 const app = express();
 app.use(cors(
@@ -34,6 +35,28 @@ app.post("/", (req, res) => {
   res.json({ name });
 });
 
+// Health and readiness endpoints
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
+app.get("/ready", async (req, res) => {
+  // TODO: Optionally verify DB connection here (e.g., Prisma query)
+  res.status(200).json({ ready: true });
+});
+
+// Subjects listing for cross-service consumption (e.g., Mongo seeders)
+app.get("/subjects", async (req, res, next) => {
+  try {
+    const subjects = await prisma.subject.findMany({
+      select: { id: true, name: true, code: true }
+    });
+    res.status(200).json(subjects);
+  } catch (err) {
+    next(err);
+  }
+});
+
 app.use("/admin", adminRoutes);
 app.use("/teacher", teacherRoutes);
 app.use("/students", studentRoutes);
@@ -47,5 +70,19 @@ app.use((req, res, next) => {
 // Global error handler middleware
 app.use(errorMiddleware);
 
-const PORT = process.env.PORT || 8001;
-app.listen(PORT, () => console.log(`🚀 Auth Service running on port ${PORT}`));
+const PORT = process.env.PORT || 9001;
+const server = app.listen(PORT, () => console.log(`🚀 Auth Service running on port ${PORT}`));
+
+// Graceful shutdown
+const shutdown = () => {
+  console.log("\nShutting down Auth Service...");
+  server.close(() => {
+    console.log("HTTP server closed");
+    process.exit(0);
+  });
+  // Force exit if not closed in time
+  setTimeout(() => process.exit(1), 10000).unref();
+};
+
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);

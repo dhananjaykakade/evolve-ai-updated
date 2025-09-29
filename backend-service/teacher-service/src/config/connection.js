@@ -5,9 +5,8 @@ import {logger} from "./logger.js";
 
 dotenv.config();
 
-const { MONGO_URI, MONGO_URI_LOCAL } = process.env;
-const mongoUri = process.env.NODE_ENV !== "production" ? MONGO_URI_LOCAL : MONGO_URI || "mongodb://127.0.0.1:27017/evolveai_teacher";
-
+const { MONGO_URI } = process.env;
+const mongoUri =  MONGO_URI || "mongodb://127.0.0.1:27017/evolveai_teacher";
 const connectDB = async () => {
   try {
     await mongoose.connect(mongoUri);
