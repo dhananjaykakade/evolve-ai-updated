@@ -16,3 +16,12 @@ app.include_router(assignment_routers)
 @app.get("/")
 def home():
     return {"message": "AI Assignment Generator is running!"}
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+@app.get("/ready")
+def ready():
+    # Optionally verify dependencies/connectivity
+    return {"ready": True}

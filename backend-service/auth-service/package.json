@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "nodemon index.js",
     "seed": "node prisma/seed.js",
-        "start": "node index.js",
+    "migrate": "prisma migrate deploy && prisma generate",
+    "start": "node index.js",
     "prisma": "prisma"
 
   },
@@ -20,6 +21,7 @@
   "dependencies": {
     "@prisma/client": "^6.5.0",
     "auth-service": "file:",
+     "axios": "^1.8.4",
     "bcryptjs": "^3.0.2",
     "bullmq": "^5.44.4",
     "chalk": "^5.4.1",

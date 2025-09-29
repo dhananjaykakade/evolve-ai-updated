@@ -76,22 +76,24 @@ const startDocker = () => {
 // Service configuration
 const services = {
   auth: {
-    target: process.env.AUTH_SERVICE_URL || "http://localhost:8001",
-    pathRewrite: { "^/auth": "" },
+    target: process.env.AUTH_SERVICE_URL || "http://localhost:9001",
+    pathRewrite: { "^/auth": "/auth" },
   },
   teacher: {
-    target: process.env.TEACHER_SERVICE_URL || "http://localhost:8005",
-    pathRewrite: { "^/teacher": "" },
+    target: process.env.TEACHER_SERVICE_URL || "http://localhost:9003",
+    pathRewrite: { "^/teacher": "/teacher" },
   },
   student: {
-    target: process.env.STUDENT_SERVICE_URL || "http://localhost:8090",
-    pathRewrite: { "^/student": "" },
+    target: process.env.STUDENT_SERVICE_URL || "http://localhost:9002",
+    pathRewrite: { "^/student": "/student" },
   },
   Notification: {
-    target: process.env.NOTIFICATION_SERVICE_URL || "http://localhost:8003",
-    pathRewrite: { "^/notification": "" },
+    target: process.env.NOTIFICATION_SERVICE_URL || "http://localhost:9004",
+    pathRewrite: { "^/notification": "/notification" },
   },
 };
+
+
 
 // Create proxy middleware for each service
 Object.entries(services).forEach(([route, config]) => {

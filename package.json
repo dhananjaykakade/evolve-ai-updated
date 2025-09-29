@@ -4,13 +4,17 @@
   "description": "",
   "private": true,
   "main": "index.js",
-    "packageManager": "pnpm@10.12.3",
+  "packageManager": "pnpm@10.12.3",
   "workspaces": [
     "backend-service/*"
   ],
   "scripts": {
     "seed": "pnpm --filter teacher-service seed && pnpm --filter auth-service seed ",
-    "dev": "concurrently \"pnpm --filter api-gateway dev\" \"pnpm --filter auth-service dev\" \"pnpm --filter teacher-service dev\" \"pnpm --filter student-service dev\" \"pnpm --filter notification-service dev\" \"npm --prefix Evolve-Student run dev\" \"npm --prefix Evolve-main run dev\" \"npm --prefix Evolve-Teacher run dev\" \"npm --prefix Evolve-Exam run dev\""
+    "seed:all": "pnpm --filter auth-service migrate && pnpm --filter auth-service seed && pnpm --filter teacher-service seed && pnpm --filter student-service seed",
+    "db:up": "cd database && docker compose --env-file .env up -d",
+    "db:down": "cd database && docker compose down",
+    "seed:orchestrated": "node scripts/seed-all.mjs",
+    "dev": "kill-port 8001 && concurrently \"pnpm --filter api-gateway dev\" \"pnpm --filter auth-service dev\" \"pnpm --filter teacher-service dev\" \"pnpm --filter student-service dev\" \"pnpm --filter notification-service dev\" \"npm --prefix Evolve-Student run dev\" \"npm --prefix Evolve-main run dev\" \"npm --prefix Evolve-Teacher run dev\" \"npm --prefix Evolve-Exam run dev\""
   },
   "keywords": [],
   "author": "",
@@ -24,6 +28,7 @@
   },
   "devDependencies": {
     "concurrently": "^9.1.2",
+    "kill-port": "^2.0.1",
     "nodemon": "^3.1.9"
   }
 }

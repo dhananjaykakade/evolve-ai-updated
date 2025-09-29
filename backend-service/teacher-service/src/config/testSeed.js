@@ -1,134 +1,69 @@
 import mongoose from 'mongoose';
+import dotenv from 'dotenv';
 import Test from '../models/testModel.js';
 import Question from '../models/MCQquestion.js';
+import axios from 'axios';
 
-await mongoose.connect('mongodb://127.0.0.1:27017/evolveai_teacher'); // change if needed
+dotenv.config();
+const { MONGO_URI } = process.env;
+
+const randomPastDate = (maxDaysBack = 30) => {
+  const now = Date.now();
+  const days = Math.floor(Math.random() * (maxDaysBack + 1));
+  const hours = Math.floor(Math.random() * 24);
+  return new Date(now - (days * 24 + hours) * 60 * 60 * 1000);
+};
+
+// courses will be derived from subjects fetched from auth-service
+
+const generateOptions = (opts) => opts.map((text, index) => ({ id: `opt${index + 1}`, text }));
+const getCorrectOptionId = (options, correctText) => options.find((o) => o.text === correctText)?.id;
 
 const seed = async () => {
+  await mongoose.connect(MONGO_URI || 'mongodb://127.0.0.1:27017/evolveai_teacher');
+
+  const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:8001';
+  const { data: subjects } = await axios.get(`${AUTH_SERVICE_URL}/subjects`);
+  const courseList = (subjects || []).map((s) => (s?.code || s?.name || 'GEN').toString().toLowerCase());
+  const courses = courseList.length > 0 ? courseList : ['cs101','cs201','cs301'];
+
   await Test.deleteMany();
   await Question.deleteMany();
 
-  const tests = [
-    {
-      title: 'JavaScript Basics Test',
-      type: 'MCQ',
-      createdBy: '5ccbbfc1-6363-4ee2-9fa0-272a1885c317', // from Postgres
-      course: 'cs301',
-      scheduledAt: new Date(Date.now() + 3600000),
-      expiresAt: new Date(Date.now() + 7200000),
-      totalMarks: 5,
-      isPublished: true,
-    },
-    {
-      title: 'HTML + CSS Quiz',
+  const tests = Array.from({ length: 15 }).map((_, i) => {
+    const start = randomPastDate(30);
+    const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
+    return {
+      title: `Auto Test #${i + 1}`,
       type: 'MCQ',
       createdBy: '5ccbbfc1-6363-4ee2-9fa0-272a1885c317',
-      course: 'cs201',
-      scheduledAt: new Date(Date.now() + 3600000),
-      expiresAt: new Date(Date.now() + 7200000),
+      course: courses[i % courses.length],
+      scheduledAt: start,
+      expiresAt: end,
       totalMarks: 5,
       isPublished: true,
-    }
-  ];
-
-  const createdTests = await Test.insertMany(tests);
-
-  const generateOptions = (opts) =>
-    opts.map((text, index) => ({
-      id: `opt${index + 1}`,
-      text,
-    }));
-
-  const getCorrectOptionId = (options, correctText) => {
-    const option = options.find((o) => o.text === correctText);
-    return option?.id;
-  };
-
-  const rawQuestions = [
-    // JS Test
-    {
-      testIndex: 0,
-      questionText: 'What does "typeof null" return?',
-      options: ['object', 'null', 'undefined', 'function'],
-      correct: 'object',
-    },
-    {
-      testIndex: 0,
-      questionText: 'Which method converts JSON to JavaScript object?',
-      options: ['JSON.stringify()', 'JSON.parse()', 'JSON.convert()', 'parse.JSON()'],
-      correct: 'JSON.parse()',
-    },
-    {
-      testIndex: 0,
-      questionText: 'Which is NOT a JavaScript data type?',
-      options: ['String', 'Boolean', 'Float', 'Undefined'],
-      correct: 'Float',
-    },
-    {
-      testIndex: 0,
-      questionText: 'Which keyword declares a constant in JavaScript?',
-      options: ['const', 'let', 'var', 'constant'],
-      correct: 'const',
-    },
-    {
-      testIndex: 0,
-      questionText: 'How do you write a comment in JavaScript?',
-      options: ['# comment', '// comment', '<!-- comment -->', '** comment **'],
-      correct: '// comment',
-    },
-
-    // HTML + CSS Test
-    {
-      testIndex: 1,
-      questionText: 'Which tag is used to define an internal style sheet?',
-      options: ['<style>', '<css>', '<script>', '<link>'],
-      correct: '<style>',
-    },
-    {
-      testIndex: 1,
-      questionText: 'Which property changes the text color in CSS?',
-      options: ['color', 'text-color', 'font-color', 'style'],
-      correct: 'color',
-    },
-    {
-      testIndex: 1,
-      questionText: 'What does HTML stand for?',
-      options: [
-        'Hyperlinks and Text Markup Language',
-        'Hyper Text Markup Language',
-        'Home Tool Markup Language',
-        'Hyperlink Tool Markup Language',
-      ],
-      correct: 'Hyper Text Markup Language',
-    },
-    {
-      testIndex: 1,
-      questionText: 'Which tag is used to display images?',
-      options: ['<img>', '<image>', '<src>', '<pic>'],
-      correct: '<img>',
-    },
-    {
-      testIndex: 1,
-      questionText: 'Which HTML attribute is used to define inline styles?',
-      options: ['class', 'style', 'font', 'id'],
-      correct: 'style',
-    },
-  ];
-
-  const formattedQuestions = rawQuestions.map((q) => {
-    const opts = generateOptions(q.options);
-    return {
-      testId: createdTests[q.testIndex]._id,
-      questionText: q.questionText,
-      options: opts,
-      correctOptionId: getCorrectOptionId(opts, q.correct),
-      marks: 1,
     };
   });
 
-  await Question.insertMany(formattedQuestions);
+  const createdTests = await Test.insertMany(tests);
 
-  console.log('✅ Seed data inserted successfully');
+  const questions = createdTests.flatMap((test) => {
+    return Array.from({ length: 5 }).map((__, qi) => {
+      const optsTexts = ['A', 'B', 'C', 'D'].map((c) => `${c} option for Q${qi + 1}`);
+      const options = generateOptions(optsTexts);
+      const correctOptionId = options[qi % options.length].id;
+      return {
+        testId: test._id,
+        questionText: `Auto question ${qi + 1} for ${test.title}`,
+        options,
+        correctOptionId,
+        marks: 1,
+      };
+    });
+  });
+
+  await Question.insertMany(questions);
+  console.log(`✅ Inserted ${createdTests.length} tests and ${questions.length} questions.`);
   process.exit();
 };
 

@@ -37,6 +37,16 @@ app.post('/', function(req, res) {
   });
 })
 
+// Health and readiness endpoints
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
+app.get('/ready', async (req, res) => {
+  // TODO: Optionally verify Mongo connection here
+  res.status(200).json({ ready: true });
+});
+
 // Routes
 
 app.use("/submissions", submissionRoute);
@@ -51,5 +61,18 @@ app.use((req, res, next) => {
 // Global error handler middleware
 app.use(errorMiddleware);
 
-const PORT = process.env.PORT || 8090;
-app.listen(PORT, () => console.log(`🚀 student Service running on port ${PORT}`));
+const PORT = process.env.PORT || 9002;
+const server = app.listen(PORT, () => console.log(`🚀 student Service running on port ${PORT}`));
+
+// Graceful shutdown
+const shutdown = () => {
+  console.log("Shutting down Student Service...");
+  server.close(() => {
+    console.log("HTTP server closed");
+    process.exit(0);
+  });
+  setTimeout(() => process.exit(1), 10000).unref();
+};
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);

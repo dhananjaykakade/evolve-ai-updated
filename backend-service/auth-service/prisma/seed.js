@@ -1,6 +1,7 @@
-import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
+import pkg from "@prisma/client";
+const { PrismaClient } = pkg;
 const prisma = new PrismaClient();
 
 async function seed() {
@@ -47,44 +48,56 @@ async function seed() {
     const teacher2 = await prisma.teacher.findFirst({ where: { email: "jane@example.com" } });
     const teacher3 = await prisma.teacher.findFirst({ where: { email: "robert@example.com" } });
 
-    // 🔹 Seed CS Courses
-    const existingCourses = await prisma.course.findMany();
-    if (existingCourses.length === 0) {
-      await prisma.course.createMany({
+    // 🔹 Seed Subjects (normalized)
+    const existingSubjects = await prisma.subject.findMany();
+    if (existingSubjects.length === 0) {
+      await prisma.subject.createMany({
         data: [
-          { name: "Python Programming", subject: "Python", teacherId: teacher1.id },
-          { name: "JavaScript Development", subject: "JavaScript", teacherId: teacher2.id },
-          { name: "Java Fundamentals", subject: "Java", teacherId: teacher3.id }
+          { name: "Python", code: "PYTH" },
+          { name: "JavaScript", code: "JS" },
+          { name: "Java", code: "JAVA" }
         ]
       });
-      console.log("✅ CS Courses added.");
+      console.log("✅ Subjects added.");
+    } else {
+      console.log("⚠️ Subjects already exist, skipping.");
+    }
+
+    // Fetch subjects
+    const pythonSubject = await prisma.subject.findFirst({ where: { code: "PYTH" } });
+    const jsSubject = await prisma.subject.findFirst({ where: { code: "JS" } });
+    const javaSubject = await prisma.subject.findFirst({ where: { code: "JAVA" } });
+
+    // 🔹 Seed CS Courses linked to Subjects
+    const existingCourses = await prisma.course.findMany();
+    if (existingCourses.length === 0) {
+      const subjects = [pythonSubject, jsSubject, javaSubject];
+      const teachers = [teacher1, teacher2, teacher3];
+      const coursesData = Array.from({ length: 15 }).map((_, i) => ({
+        name: `${subjects[i % subjects.length].name} Course #${i + 1}`,
+        subjectId: subjects[i % subjects.length].id,
+        teacherId: teachers[i % teachers.length].id,
+      }));
+      await prisma.course.createMany({ data: coursesData });
+      console.log(`✅ ${coursesData.length} Courses added.`);
     } else {
       console.log("⚠️ Courses already exist, skipping.");
     }
 
-    // Fetch course IDs
-    const course1 = await prisma.course.findFirst({ where: { name: "Python Programming" } });
-    const course2 = await prisma.course.findFirst({ where: { name: "JavaScript Development" } });
-    const course3 = await prisma.course.findFirst({ where: { name: "Java Fundamentals" } });
+    // Fetch courses
+    const courses = await prisma.course.findMany();
 
-    // 🔹 Seed 10 Students
+    // 🔹 Seed 15 Students
     const existingStudents = await prisma.student.findMany();
     if (existingStudents.length === 0) {
-      await prisma.student.createMany({
-        data: [
-          { name: "Alice Johnson", email: "alice@example.com", password: hashedStudentPassword, adminId: admin.id },
-          { name: "Bob Smith", email: "bob@example.com", password: hashedStudentPassword, adminId: admin.id },
-          { name: "Charlie Brown", email: "charlie@example.com", password: hashedStudentPassword, adminId: admin.id },
-          { name: "David Wilson", email: "david@example.com", password: hashedStudentPassword, adminId: admin.id },
-          { name: "Emma Garcia", email: "emma@example.com", password: hashedStudentPassword, adminId: admin.id },
-          { name: "Frank Miller", email: "frank@example.com", password: hashedStudentPassword, adminId: admin.id },
-          { name: "Grace Lee", email: "grace@example.com", password: hashedStudentPassword, adminId: admin.id },
-          { name: "Hannah Walker", email: "hannah@example.com", password: hashedStudentPassword, adminId: admin.id },
-          { name: "Isaac Adams", email: "isaac@example.com", password: hashedStudentPassword, adminId: admin.id },
-          { name: "Jack Carter", email: "jack@example.com", password: hashedStudentPassword, adminId: admin.id }
-        ]
-      });
-      console.log("✅ 10 Students added.");
+      const studentsData = Array.from({ length: 15 }).map((_, i) => ({
+        name: `Student ${i + 1}`,
+        email: `student${i + 1}@example.com`,
+        password: hashedStudentPassword,
+        adminId: admin.id,
+      }));
+      await prisma.student.createMany({ data: studentsData });
+      console.log(`✅ ${studentsData.length} Students added.`);
     } else {
       console.log("⚠️ Students already exist, skipping.");
     }
@@ -92,16 +105,16 @@ async function seed() {
     // Fetch student IDs
     const students = await prisma.student.findMany();
 
-    // 🔹 Seed Course Enrollments (Assign students randomly to courses)
+    // 🔹 Seed Course Enrollments (Assign students randomly to courses) with subjectId
     const existingEnrollments = await prisma.courseEnrollment.findMany();
     if (existingEnrollments.length === 0) {
-      const enrollments = students.flatMap((student, index) => [
-        { studentId: student.id, courseId: index % 3 === 0 ? course1.id : index % 3 === 1 ? course2.id : course3.id }
-      ]);
+      const enrollments = students.slice(0, 15).map((student, index) => {
+        const course = courses[index % courses.length];
+        return { studentId: student.id, courseId: course.id, subjectId: course.subjectId };
+      });
 
       await prisma.courseEnrollment.createMany({ data: enrollments });
-
-      console.log("✅ Students enrolled in CS Courses.");
+      console.log(`✅ ${enrollments.length} Students enrolled in Courses.`);
     } else {
       console.log("⚠️ Students already enrolled, skipping.");
     }

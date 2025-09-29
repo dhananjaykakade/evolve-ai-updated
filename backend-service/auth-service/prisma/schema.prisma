@@ -7,14 +7,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+
 model Admin {
-  id             String   @id @default(uuid())
+  id             String    @id @default(uuid())
   name           String
   instituteName  String
-  email          String   @unique
+  email          String    @unique
   password       String
-  isVerified     Boolean  @default(false)
-  createdAt      DateTime @default(now())
+  isVerified     Boolean   @default(false)
+  createdAt      DateTime  @default(now())
 
   // Relations
   teachers       Teacher[]
@@ -42,20 +43,32 @@ model Student {
   isActive   Boolean   @default(true)
   adminId    String
   admin      Admin     @relation(fields: [adminId], references: [id], onDelete: Cascade)
-  enrolledCourses CourseEnrollment[]
+  enrollments CourseEnrollment[]
 
   createdAt  DateTime  @default(now())
 }
 
+model Subject {
+  id          String   @id @default(uuid())
+  name        String
+  code        String   @unique
+  description String?
+  courses     Course[]           @relation("CourseSubject")
+  enrollments CourseEnrollment[] @relation("EnrollmentSubject")
+
+  createdAt   DateTime @default(now())
+}
+
 model Course {
-  id         String   @id @default(uuid())
-  name       String
-  subject    String
-  teacherId  String
-  teacher    Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  id          String   @id @default(uuid())
+  name        String
+  subjectId   String
+  subject     Subject  @relation("CourseSubject", fields: [subjectId], references: [id], onDelete: Restrict)
+  teacherId   String
+  teacher     Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   enrollments CourseEnrollment[]
 
-  createdAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
 }
 
 model CourseEnrollment {
@@ -64,6 +77,8 @@ model CourseEnrollment {
   student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
   courseId  String
   course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  subjectId String
+  subject   Subject  @relation("EnrollmentSubject", fields: [subjectId], references: [id], onDelete: Restrict)
 
   createdAt DateTime @default(now())
 }

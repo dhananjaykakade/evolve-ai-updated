@@ -39,10 +39,33 @@ app.get("/", (req, res) => {
   res.send("📚 Teacher Service is Running...");
 });
 
+// Health and readiness endpoints
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
+app.get("/ready", async (req, res) => {
+  // TODO: Optionally verify Mongo connection here
+  res.status(200).json({ ready: true });
+});
+
 app.use(errorMiddleware);
 // Start Server
-const PORT = process.env.PORT || 8005;
-app.listen(PORT, () => {
+const PORT = process.env.PORT || 9003;
+const server = app.listen(PORT, () => {
   connectDB();
   logger.info(`🚀 Teacher Service running on port ${PORT}`);
 });
+
+// Graceful shutdown
+const shutdown = () => {
+  logger.info("Shutting down Teacher Service...");
+  server.close(() => {
+    logger.info("HTTP server closed");
+    process.exit(0);
+  });
+  setTimeout(() => process.exit(1), 10000).unref();
+};
+
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);
