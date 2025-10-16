@@ -8,6 +8,12 @@ import studentRoutes from "./src/routes/studentRoutes.js";
 import ResponseHandler from "./src/utils/CustomResponse.js";
 import { httpLogger } from "./src/utils/logger.js";
 import prisma from "./src/utils/prisma.js";
+
+// V2 Routes
+import adminRoutesV2 from "./src/routes/v2/adminRoutes.js";
+import teacherRoutesV2 from "./src/routes/v2/teacherRoutes.js";
+import studentRoutesV2 from "./src/routes/v2/studentRoutes.js";
+
 dotenv.config();
 const app = express();
 app.use(cors(
@@ -60,6 +66,11 @@ app.get("/subjects", async (req, res, next) => {
 app.use("/admin", adminRoutes);
 app.use("/teacher", teacherRoutes);
 app.use("/students", studentRoutes);
+
+// V2 API Routes with improved features
+app.use("/v2/admin", adminRoutesV2);
+app.use("/v2/teacher", teacherRoutesV2);
+app.use("/v2/student", studentRoutesV2);
 
 app.use(httpLogger);
 // Handle 404 Not Found
