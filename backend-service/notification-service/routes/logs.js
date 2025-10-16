@@ -6,9 +6,22 @@ const router = express.Router();
 
 // GET all logs for a test
 router.get('/:testId', async (req, res) => {
-  const { testId } = req.params;
-  const logs = await Log.find({ testId }).sort({ timestamp: -1 });
-  res.json({ success: true, logs });
+  try {
+    const { testId } = req.params;
+    
+    // Validate that the ID is a valid MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(testId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid test ID format'
+      });
+    }
+    
+    const logs = await Log.find({ testId }).sort({ timestamp: -1 });
+    res.json({ success: true, logs });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 router.get('/tests/:id/logs', async (req, res) => {

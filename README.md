@@ -2,7 +2,32 @@
 
 ## Enterprise AI-Powered Educational Assessment System
 
-*Version 1.0*
+*Version 2.0 - Production-Ready Microservices Architecture*
+
+---
+
+## 🚀 Quick Start
+
+### One-Command Setup
+
+Get the entire platform running in minutes:
+
+```bash
+# Complete setup with one command
+npm run setup
+
+# Or run directly
+node setup.mjs
+```
+
+That's it! The setup script will:
+- ✅ Install all dependencies
+- ✅ Configure all services
+- ✅ Start databases (PostgreSQL, MongoDB, Redis)
+- ✅ Run Prisma migrations
+- ✅ Seed sample data
+
+**For detailed setup options and troubleshooting, see [SETUP_GUIDE.md](SETUP_GUIDE.md)**
 
 ---
 
@@ -10,7 +35,7 @@
 
 EvolveAI is a comprehensive AI-powered assessment platform designed for educational institutions across all levels. The system facilitates effective test administration, assignment management, and performance evaluation through advanced AI capabilities and real-time monitoring.
 
-## Core Capabilities
+## 🎯 Core Capabilities
 
 ### Administration Portal
 - Secure administrator authentication and account management
@@ -42,12 +67,34 @@ EvolveAI is a comprehensive AI-powered assessment platform designed for educatio
 - WebSocket-based real-time alert infrastructure
 - Comprehensive activity logging for faculty review
 
-## Technical Architecture
+## 🏗️ Technical Architecture
+
+### Microservices
+
+| Service | Technology | Port | Description |
+|---------|-----------|------|-------------|
+| API Gateway | Node.js + Express | 9001 | Central routing, rate limiting, CORS |
+| Auth Service | Node.js + Express + Prisma | 9001 | Authentication (routes through gateway) |
+| Student Service | Node.js + Express + Mongoose | 9002 | Student profiles & enrollments |
+| Teacher Service | Node.js + Express + Mongoose | 9003 | Teacher profiles & courses |
+| Notification Service | Node.js + Express + WebSocket | 9004 | Real-time notifications |
+
+### Databases
+
+| Database | Port | Usage |
+|----------|------|-------|
+| PostgreSQL 16 | 5433 | User authentication & authorization |
+| MongoDB 7 | 27019 | Student/teacher profiles, courses |
+| Redis 7 | 6379 | Caching, session management |
+
+### Frontend Applications
 
 | Component         | Technology Implementation                |
 |-------------------|-----------------------------------------|
-| Frontend          | React + TypeScript (Vite)               |
-| Backend           | Node.js + Express                       |
+| Admin Portal      | React + TypeScript (Vite)               |
+| Teacher Dashboard | React + TypeScript (Vite)               |
+| Student Portal    | React + TypeScript (Vite)               |
+| Exam Interface    | React + TypeScript (Vite)               |
 | Service Structure | Microservices Architecture              |
 | Data Storage      | PostgreSQL (Authentication), MongoDB (Application Data) |
 | AI Integration    | Gemini (Google Generative AI)           |

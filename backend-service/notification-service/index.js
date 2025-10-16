@@ -27,10 +27,7 @@ const server = http.createServer(app);
 // Initialize WebSocket after the server is created
 initWebSocket(server);
 
-// Routes
-app.use('/', logsRoute);
-
-// Health and readiness endpoints
+// Health and readiness endpoints (MUST come before other routes)
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
@@ -39,6 +36,9 @@ app.get('/ready', async (req, res) => {
   // Optionally verify DB connectivity or WebSocket state
   res.status(200).json({ ready: true });
 });
+
+// Routes
+app.use('/', logsRoute);
 
 // Start server
 const PORT = process.env.PORT || 9020;

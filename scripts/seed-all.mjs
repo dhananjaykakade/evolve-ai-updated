@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import { setTimeout as wait } from 'node:timers/promises';
 
 const ROOT = process.cwd();
-const AUTH_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:8001';
+const AUTH_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:9001';
 
 function runCmd(command, args = [], opts = {}) {
   return new Promise((resolve, reject) => {
